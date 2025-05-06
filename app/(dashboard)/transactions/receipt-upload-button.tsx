@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 import { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useSelectAccount } from "@/features/accounts/hooks/use-select-account";
 import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-create-transactions";
 
-type ReceiptUploadButtonProps = {
+type DocumentUploadButtonProps = {
   onUpload?: (results: any) => void;
 };
 
@@ -15,12 +15,12 @@ type GeminiResponse = {
     date: string;
     payee: string;
     amount: number;
-    notes?: string;
     type: string;
+    notes?: string;
   }>;
 };
 
-export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
+export const DocumentUploadButton = ({ onUpload }: DocumentUploadButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [AccountDialog, confirm] = useSelectAccount();
   const createTransactions = useBulkCreateTransactions();
@@ -34,7 +34,7 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
     return text;
   };
 
-  const processReceipts = async (files: FileList) => {
+  const processDocuments = async (files: FileList) => {
     try {
       setIsProcessing(true);
       
@@ -57,21 +57,29 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
       const fileData = await Promise.all(filePromises);
       
       // Prepare the prompt and files for Gemini
-      const prompt = `Extract transaction details from these receipts. Return the results in JSON format with the following structure:
+      const prompt = `Analyze these financial documents (which may include receipts, checks, invoices, or other financial records) and extract transaction details. Return the results in JSON format with the following structure:
       {
         "transactions": [
           {
             "date": "YYYY-MM-DD",
-            "payee": "store name",
-            "amount": total amount in decimal format (e.g. 154.06),
+            "payee": "name of payer/payee",
+            "amount": total amount as is(e.g. 154.06 should be 154.06 , but 154 should be 154.00),
             "type": "EXPENSE" or "INCOME",
-            "notes": "Include receipt number and items if available"
+            "notes": "Include document type (receipt/check/invoice), document number if available, and relevant details"
           }
         ]
       }
-      For transactions where money is being paid out (purchases, bills, etc.), mark type as "EXPENSE".
-      For transactions where money is being received (refunds, payments received, income, etc.), mark type as "INCOME".
-      `;
+
+      Guidelines:
+      - For checks: payee is who the check is written to/from
+      - For receipts: payee is the merchant/store name
+      - For invoices: payee is the billing entity
+      
+      Transaction Types:
+      - EXPENSE: Money going out (purchases, payments made, bills)
+      - INCOME: Money coming in (checks received, payments received, refunds)
+      
+      Please be thorough in the notes field to indicate the type of document processed.`;
       
       const result = await model.generateContent([
         prompt,
@@ -99,17 +107,17 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
       // Transform the data into the format expected by the database
       const transformedData = parsedData.transactions.map(transaction => ({
         accountId: accountId as string,
-        // Convert amount to negative for expenses, positive for income
-        amount: Math.round((transaction.type === "EXPENSE" ? -transaction.amount : transaction.amount) * 100), // Convert to cents
+        // Convert amount to cents and make negative for expenses
+        amount: Math.round(transaction.amount * (transaction.type === "EXPENSE" ? -100 : 100)),
         payee: transaction.payee,
         date: new Date(transaction.date),
-        notes: transaction.notes || `Added via receipt scan (${transaction.type.toLowerCase()})`
+        notes: transaction.notes || `Added via document scan (${transaction.type.toLowerCase()})`
       }));
 
       // Create the transactions
       createTransactions.mutate(transformedData, {
         onSuccess: () => {
-          toast.success(`Successfully processed ${files.length} receipt(s)!`);
+          toast.success(`Successfully processed ${files.length} document(s)!`);
         },
         onError: (error) => {
           console.error('Error creating transactions:', error);
@@ -118,8 +126,8 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
       });
 
     } catch (error) {
-      console.error('Error processing receipts:', error);
-      toast.error("Failed to process receipts. Please try again.");
+      console.error('Error processing documents:', error);
+      toast.error("Failed to process documents. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -136,7 +144,7 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
       return;
     }
 
-    await processReceipts(files);
+    await processDocuments(files);
     // Clear the input so the same files can be selected again if needed
     event.target.value = '';
   };
@@ -150,17 +158,17 @@ export const ReceiptUploadButton = ({ onUpload }: ReceiptUploadButtonProps) => {
           accept="image/*"
           multiple
           className="hidden"
-          id="receipt-upload"
+          id="document-upload"
           onChange={handleFileSelect}
         />
         <Button
           size="sm"
           className="w-full lg:w-auto"
-          onClick={() => document.getElementById('receipt-upload')?.click()}
+          onClick={() => document.getElementById('document-upload')?.click()}
           disabled={isProcessing}
         >
-          <Camera className="mr-2 size-4" />
-          {isProcessing ? 'Processing...' : 'Scan Receipts'}
+          <ImagePlus className="mr-2 size-4" />
+          {isProcessing ? 'Processing...' : 'Upload Documents'}
         </Button>
       </div>
     </>

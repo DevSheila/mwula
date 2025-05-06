@@ -18,7 +18,7 @@ import { useNewTransaction } from "@/features/transactions/hooks/use-new-transac
 import { columns } from "./columns";
 import { ImportCard } from "./import-card";
 import { UploadButton } from "./upload-button";
-import { ReceiptUploadButton } from "./receipt-upload-button";
+import { DocumentUploadButton } from "./receipt-upload-button";
 
 enum VARIANTS {
   LIST = "LIST",
@@ -124,7 +124,7 @@ const TransactionsPage = () => {
             >
               <Plus className="mr-2 size-4" /> Add new
             </Button>
-            <ReceiptUploadButton />
+            <DocumentUploadButton />
             <UploadButton onUpload={onUpload} />
           </div>
         </CardHeader>

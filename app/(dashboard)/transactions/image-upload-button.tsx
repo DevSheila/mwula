@@ -20,7 +20,7 @@ type GeminiResponse = {
   }>;
 };
 
-export const DocumentUploadButton = ({ onUpload }: DocumentUploadButtonProps) => {
+export const ImageUploadButton = ({ onUpload }: DocumentUploadButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [AccountDialog, confirm] = useSelectAccount();
   const createTransactions = useBulkCreateTransactions();
@@ -168,7 +168,7 @@ export const DocumentUploadButton = ({ onUpload }: DocumentUploadButtonProps) =>
           disabled={isProcessing}
         >
           <ImagePlus className="mr-2 size-4" />
-          {isProcessing ? 'Processing...' : 'Upload Documents'}
+          {isProcessing ? 'Processing...' : 'Upload Images'}
         </Button>
       </div>
     </>

@@ -19,7 +19,7 @@ import { columns } from "./columns";
 import { ImportCard } from "./import-card";
 import { UploadButton } from "./upload-button";
 import { DocumentUploadSection } from "./document-upload-section";
-// import { DocumentUploadButton } from "./receipt-upload-button";
+import { ImportDialog } from "./import-dialog";
 
 enum VARIANTS {
   LIST = "LIST",
@@ -125,8 +125,8 @@ const TransactionsPage = () => {
             >
               <Plus className="mr-2 size-4" /> Add new
             </Button>
-            <DocumentUploadSection />
-            <UploadButton onUpload={onUpload} />
+   
+            < ImportDialog onUpload={onUpload} />
           </div>
         </CardHeader>
 

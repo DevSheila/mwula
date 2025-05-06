@@ -163,7 +163,7 @@ export const ImageUploadButton = ({ onUpload }: DocumentUploadButtonProps) => {
         />
         <Button
           size="sm"
-          className="w-full lg:w-auto"
+          className="w-full lg:w-full"
           onClick={() => document.getElementById('document-upload')?.click()}
           disabled={isProcessing}
         >

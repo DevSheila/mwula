@@ -158,7 +158,7 @@ export const PDFUploadButton = ({ onUpload }: PDFUploadButtonProps) => {
         />
         <Button
           size="sm"
-          className="w-full lg:w-auto"
+          className="w-full lg:w-full"
           onClick={() => document.getElementById('pdf-upload')?.click()}
           disabled={isProcessing}
         >

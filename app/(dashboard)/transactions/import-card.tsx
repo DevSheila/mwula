@@ -1,4 +1,4 @@
-import { format, parse } from "date-fns";
+import { format, parse, isValid, parseISO } from "date-fns";
 import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { convertAmountToMiliunits } from "@/lib/utils";
 import { ImportTable } from "./import-table";
 
 const dateFormat = "yyyy-MM-dd HH:mm:ss";
+const simpleDateFormat = "yyyy-MM-dd";
 const outputFormat = "yyyy-MM-dd";
 
 const requiredOptions = ["amount", "date", "payee"];
@@ -82,23 +83,90 @@ export const ImportCard = ({ data, onCancel, onSubmit }: ImportCardProps) => {
 
     // convert it to array of objects so that it can be inserted into database.
     const arrayOfData = mappedData.body.map((row) => {
-      return row.reduce((acc: any, cell, index) => {
+      console.log('Processing row:', row);
+      console.log('Headers:', mappedData.headers);
+      
+      const processedRow = row.reduce((acc: any, cell, index) => {
         const header = mappedData.headers[index];
-
-        if (header !== null) acc[header] = cell;
-
+        
+        if (header !== null) {
+          // Ensure we're getting the cell value and it's properly trimmed
+          const value = cell !== null ? cell.toString().trim() : '';
+          acc[header] = value;
+        }
+        
         return acc;
       }, {});
+      
+      console.log('Processed row:', processedRow);
+      return processedRow;
     });
 
     // format currency and date to match it with database
-    const formattedData = arrayOfData.map((item) => ({
-      ...item,
-      amount: convertAmountToMiliunits(parseFloat(item.amount)),
-      date: format(parse(item.date, dateFormat, new Date()), outputFormat),
-    }));
+    const skippedRows: Array<{ index: number; reason: string }> = [];
+    const validRows: any[] = [];
 
-    onSubmit(formattedData);
+    arrayOfData.forEach((item, index) => {
+      try {
+        // Check if we have a date field at all
+        if (!Object.prototype.hasOwnProperty.call(item, 'date')) {
+          skippedRows.push({ index: index + 1, reason: 'Missing date field' });
+          return; // Skip this row
+        }
+
+        // Skip if date is empty or undefined
+        if (!item.date || item.date.trim() === '') {
+          skippedRows.push({ index: index + 1, reason: 'Empty date field' });
+          return; // Skip this row
+        }
+
+        const trimmedDate = item.date.trim();
+        let parsedDate;
+
+        // For sample2.csv format (YYYY-MM-DD)
+        if (trimmedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          parsedDate = parse(trimmedDate, simpleDateFormat, new Date());
+        }
+        // For sample.csv format (YYYY-MM-DD HH:mm:ss)
+        else if (trimmedDate.match(/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/)) {
+          parsedDate = parse(trimmedDate, dateFormat, new Date());
+        }
+        // Try ISO format as fallback
+        else {
+          parsedDate = parseISO(trimmedDate);
+        }
+
+        if (!isValid(parsedDate)) {
+          skippedRows.push({ index: index + 1, reason: `Invalid date format: ${trimmedDate}` });
+          return; // Skip this row
+        }
+
+        validRows.push({
+          ...item,
+          amount: convertAmountToMiliunits(parseFloat(item.amount)),
+          date: format(parsedDate, outputFormat),
+        });
+      } catch (error) {
+        console.error('Error processing row:', {
+          rowIndex: index + 1,
+          item: item,
+          error: error.message
+        });
+        skippedRows.push({ index: index + 1, reason: error.message });
+      }
+    });
+
+    if (skippedRows.length > 0) {
+      console.warn('Skipped rows:', skippedRows);
+      const skipMessage = `Skipped ${skippedRows.length} invalid rows. Check console for details.`;
+      alert(skipMessage);
+    }
+
+    if (validRows.length === 0) {
+      throw new Error('No valid rows found in the imported data');
+    }
+
+    onSubmit(validRows);
   };
 
   return (

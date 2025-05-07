@@ -8,6 +8,7 @@ import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-
 
 type PDFUploadButtonProps = {
   onUpload?: (results: any) => void;
+  onClose: () => void;
 };
 
 type GeminiResponse = {
@@ -20,7 +21,7 @@ type GeminiResponse = {
   }>;
 };
 
-export const PDFUploadButton = ({ onUpload }: PDFUploadButtonProps) => {
+export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [AccountDialog, confirm] = useSelectAccount();
   const createTransactions = useBulkCreateTransactions();
@@ -113,6 +114,7 @@ export const PDFUploadButton = ({ onUpload }: PDFUploadButtonProps) => {
       createTransactions.mutate(transformedData, {
         onSuccess: () => {
           toast.success(`Successfully processed ${files.length} PDF document(s)!`);
+          onClose();
         },
         onError: (error) => {
           console.error('Error creating transactions:', error);

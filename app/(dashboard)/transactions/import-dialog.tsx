@@ -1,5 +1,6 @@
 import { Upload, FileImage, FileText } from "lucide-react";
 import { useCSVReader } from "react-papaparse";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +20,13 @@ type ImportDialogProps = {
 };
 
 export const ImportDialog = ({ onUpload }: ImportDialogProps) => {
+    const [open, setOpen] = useState(false);
     const { CSVReader } = useCSVReader();
 
+    const handleClose = () => setOpen(false);
+
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" className="w-full lg:w-auto">
                     <Upload className="mr-2 size-4" />
@@ -34,8 +38,11 @@ export const ImportDialog = ({ onUpload }: ImportDialogProps) => {
                     <DialogTitle>Import Transactions</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col gap-4 py-4">
-                    <DocumentUploadSection />
-                    <UploadButton onUpload={onUpload} />
+                    <DocumentUploadSection onClose={handleClose} />
+                    <UploadButton onUpload={(results) => {
+                        onUpload(results);
+                        handleClose();
+                    }} />
                 </div>
             </DialogContent>
         </Dialog>

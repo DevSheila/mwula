@@ -1,8 +1,7 @@
-
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import { zValidator } from "@hono/zod-validator";
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -21,9 +20,17 @@ const app = new Hono()
       .select({
         id: categories.id,
         name: categories.name,
+        description: categories.description,
+        icon: categories.icon,
+        isUniversal: categories.isUniversal,
       })
       .from(categories)
-      .where(eq(categories.userId, auth.userId));
+      .where(
+        or(
+          eq(categories.userId, auth.userId),
+          eq(categories.isUniversal, 1)
+        )
+      );
 
     return ctx.json({ data });
   })

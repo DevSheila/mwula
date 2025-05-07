@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate:pg --schema db/schema.ts --out ./drizzle",
     "db:migrate": "tsx ./scripts/migrate.ts",
     "db:seed": "tsx ./scripts/seed.ts",
+    "db:categories": "tsx ./scripts/seed-categories.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -62,6 +63,7 @@
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.15.7",
+    "uuid": "^11.1.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"
   },

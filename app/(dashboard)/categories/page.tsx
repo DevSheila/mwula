@@ -60,8 +60,12 @@ const CategoriesPage = () => {
                         columns={columns}
                         data={categories}
                         onDelete={(row) => {
-                            const ids = row.map((r) => r.original.id);
-                            deleteCategories.mutate({ ids });
+                            // Filter out universal categories before deletion
+                            const userCategories = row.filter(r => !r.original.isUniversal);
+                            if (userCategories.length > 0) {
+                                const ids = userCategories.map((r) => r.original.id);
+                                deleteCategories.mutate({ ids });
+                            }
                         }}
                         disabled={isDisabled}
                     />

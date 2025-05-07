@@ -44,12 +44,6 @@ export const siteConfig: Metadata = {
     "html",
     "css",
   ] as Array<string>,
-  authors: {
-    name: "Thounny Keo",
-    url: "https://github.com/thounny",
-  },
+
 } as const;
 
-export const links = {
-  sourceCode: "https://github.com/thounny/finance-tracker",
-} as const;

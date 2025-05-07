@@ -13,9 +13,19 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
+import { 
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { iconMap } from "../lib/icons";
 
 const formSchema = insertCategorySchema.pick({
   name: true,
+  description: true,
+  icon: true,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +57,9 @@ export const CategoryForm = ({
   const handleDelete = () => {
     onDelete?.();
   };
+
+  const iconOptions = Object.keys(iconMap);
+
   return (
     <Form {...form}>
       <form
@@ -62,11 +75,61 @@ export const CategoryForm = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
-
               <FormControl>
                 <Input placeholder="e.g. Food, Travel, etc." {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
+        <FormField
+          name="description"
+          control={form.control}
+          disabled={disabled}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. Expenses for food and groceries" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          name="icon"
+          control={form.control}
+          disabled={disabled}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Icon</FormLabel>
+              <Select
+                disabled={disabled}
+                onValueChange={field.onChange}
+                value={field.value}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an icon" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {iconOptions.map((icon) => {
+                    const IconComponent = iconMap[icon];
+                    return (
+                      <SelectItem key={icon} value={icon}>
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="h-4 w-4" />
+                          <span>{icon}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

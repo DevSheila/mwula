@@ -13,6 +13,8 @@ import {
 
 const formSchema = insertCategorySchema.pick({
   name: true,
+  description: true,
+  icon: true,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,6 +45,8 @@ export const NewCategorySheet = () => {
         <CategoryForm
           defaultValues={{
             name: "",
+            description: "",
+            icon: "more-horizontal", // Default icon
           }}
           onSubmit={onSubmit}
           disabled={mutation.isPending}

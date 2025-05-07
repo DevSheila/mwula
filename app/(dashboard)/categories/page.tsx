@@ -14,12 +14,22 @@ import { DataTable } from "@/components/data-table";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBulkDeleteCategories } from "@/features/categories/api/use-bulk-delete-categories";
+import { TypeFilter } from "./type-filter";
+import { useState } from "react";
 
 const CategoriesPage = () => {
     const newCategory = useNewCategory();
     const deleteCategories = useBulkDeleteCategories();
     const categoriesQuery = useGetCategories();
+    const [typeFilter, setTypeFilter] = useState("all");
+
     const categories = categoriesQuery.data || [];
+    const filteredCategories = categories.filter(category => {
+        if (typeFilter === "all") return true;
+        if (typeFilter === "user") return category.isUniversal === 0;
+        if (typeFilter === "universal") return category.isUniversal === 1;
+        return true;
+    });
 
     const isDisabled =
         categoriesQuery.isLoading ||
@@ -55,10 +65,13 @@ const CategoriesPage = () => {
                     </Button>
                 </CardHeader>
                 <CardContent>
+                    <div className="mb-4">
+                        <TypeFilter value={typeFilter} onChange={setTypeFilter} />
+                    </div>
                     <DataTable
                         filterKey="name"
                         columns={columns}
-                        data={categories}
+                        data={filteredCategories}
                         onDelete={(row) => {
                             // Filter out universal categories before deletion
                             const userCategories = row.filter(r => !r.original.isUniversal);

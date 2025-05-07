@@ -48,6 +48,7 @@ const app = new Hono()
           date: transactions.date,
           category: categories.name,
           categoryId: transactions.categoryId,
+          isUniversal: categories.isUniversal,
           payee: transactions.payee,
           amount: transactions.amount,
           notes: transactions.notes,

@@ -79,6 +79,7 @@ export const columns: ColumnDef<ResponseType>[] = [
           id={row.original.id}
           category={row.original.category}
           categoryId={row.original.categoryId}
+          isUniversal={row.original.isUniversal}
         />
       )
     }

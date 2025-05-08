@@ -2,11 +2,14 @@ import { integer, bigint, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
+
 export const accounts = pgTable("accounts", {
     id: text("id").primaryKey(),
     plaidId: text("plaid_id"),
     name: text("name").notNull(),
     userId: text("user_id").notNull(),
+    institutionName: text("institution_name").notNull(),
+    accountNumber: text("account_number").notNull(),
 });
 
 export const accountsRelations = relations(accounts, ({ many }) => ({

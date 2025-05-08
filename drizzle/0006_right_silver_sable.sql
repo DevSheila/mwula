@@ -1,1 +1,0 @@
-ALTER TABLE "transactions" ADD COLUMN "transaction_cost" bigint DEFAULT 0 NOT NULL;

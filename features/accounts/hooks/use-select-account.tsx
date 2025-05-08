@@ -26,7 +26,7 @@ export const useSelectAccount = (): [
     });
 
   const accountOptions = (accountQuery.data ?? []).map((account) => ({
-    label: account.name,
+    label: `${account.name} (${account.institutionName}${account.accountNumber ? ` - #${account.accountNumber}` : ''})`,
     value: account.id,
   }));
 

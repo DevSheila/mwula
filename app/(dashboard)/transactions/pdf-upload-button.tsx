@@ -73,15 +73,14 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
         name: cat.name,
         description: cat.description,
         id: cat.id
-      }));
+      })); 
       
       const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction and account details. Return the results in JSON format with the following structure:
       {
         "accountInfo": {
-          "accountName": "detected account name or null",
           "institutionName": "detected institution name or null",
           "accountNumber": "detected account number or null",
-          "accountType": "detected account type or null"
+          "accountType": "detected account type or null (e.g. checking, savings, credit card, etc.)"
         },
         "transactions": [
           {

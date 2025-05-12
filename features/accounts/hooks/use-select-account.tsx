@@ -85,7 +85,7 @@ export const useSelectAccount = (): [
 
   const ConfirmationDialog = () => {
     const suggestedAccountText = suggestedAccount ? 
-      `Detected Account: ${suggestedAccount.accountName || 'Unknown'} at ${suggestedAccount.institutionName || 'Unknown Institution'}${suggestedAccount.accountNumber ? ` (#${suggestedAccount.accountNumber})` : ''}` : 
+      `Detected Account: ${suggestedAccount.accountName || ''} - ${suggestedAccount.institutionName || ''}${suggestedAccount.accountNumber ? ` (#${suggestedAccount.accountNumber})` : ''}` : 
       '';
 
     return (

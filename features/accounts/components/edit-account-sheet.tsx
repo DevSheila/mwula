@@ -72,7 +72,7 @@ export const EditAccountSheet = () => {
         name: "",
         institutionName: "",
         accountNumber: "",
-        currency: "KES",
+        currency: "KESyy",
     }
 
     return (

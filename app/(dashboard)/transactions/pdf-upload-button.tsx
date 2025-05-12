@@ -75,8 +75,14 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
         id: cat.id
       }));
       
-      const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction details. Return the results in JSON format with the following structure:
+      const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction and account details. Return the results in JSON format with the following structure:
       {
+        "accountInfo": {
+          "accountName": "detected account name or null",
+          "institutionName": "detected institution name or null",
+          "accountNumber": "detected account number or null",
+          "accountType": "detected account type or null"
+        },
         "transactions": [
           {
             "date": "YYYY-MM-DD",
@@ -93,10 +99,12 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       ${JSON.stringify(availableCategories, null, 2)}
 
       Guidelines:
+      - Extract any visible account information (name, institution, number, type) from headers, footers, or metadata
+      - For statements: extract account details from the statement header
       - For statements: extract each transaction with its corresponding payee
       - For invoices: payee is the billing entity
       - Choose the most appropriate category from the provided list based on the transaction details
-      - IMPORTANT: Preserve exact amount values. Do not round or modify the amounts. If an amount is 17000.00, keep it as 17000.00, not 1700.00
+      - IMPORTANT: Preserve exact amount values. Do not round or modify the amounts.
       
       Transaction Types:
       - EXPENSE: Money going out (debits, payments made, bills)
@@ -117,10 +125,20 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       const cleanedJson = cleanJsonResponse(text);
       console.log("Cleaned JSON:", cleanedJson);
       
-      const parsedData = JSON.parse(cleanedJson) as GeminiResponse;
+      const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
+        accountInfo: {
+          accountName: string | null;
+          institutionName: string | null;
+          accountNumber: string | null;
+          accountType: string | null;
+        };
+      };
 
-      // Get account selection from user
-      const accountId = await confirm();
+      // Get account selection from user with suggested account
+      const accountId = await confirm({
+        suggestedAccount: parsedData.accountInfo
+      });
+      
       if (!accountId) {
         toast.error("Please select an account to continue.");
         return;

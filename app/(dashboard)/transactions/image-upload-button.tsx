@@ -67,8 +67,14 @@ export const ImageUploadButton = ({ onUpload, onClose }: DocumentUploadButtonPro
         id: cat.id
       }));
 
-      const prompt = `Analyze these financial documents (which may include receipts, checks, invoices, or other financial records) and extract transaction details. Return the results in JSON format with the following structure:
+      const prompt = `Analyze these financial documents (which may include receipts, checks, invoices, or other financial records) and extract transaction and account details. Return the results in JSON format with the following structure:
       {
+        "accountInfo": {
+          "accountName": "detected account name or null",
+          "institutionName": "detected institution name or null",
+          "accountNumber": "detected account number or null",
+          "accountType": "detected account type or null"
+        },
         "transactions": [
           {
             "date": "YYYY-MM-DD",
@@ -85,7 +91,9 @@ export const ImageUploadButton = ({ onUpload, onClose }: DocumentUploadButtonPro
       ${JSON.stringify(availableCategories, null, 2)}
 
       Guidelines:
-      - For checks: payee is who the check is written to/from
+      - Extract any visible account information (name, institution, number, type)
+      - For checks: look for account details in the check header
+      - For bank documents: extract account information from headers or footers
       - For receipts: payee is the merchant/store name
       - For invoices: payee is the billing entity
       - Choose the most appropriate category from the provided list based on the transaction details
@@ -110,10 +118,20 @@ export const ImageUploadButton = ({ onUpload, onClose }: DocumentUploadButtonPro
       const cleanedJson = cleanJsonResponse(text);
       console.log("Cleaned JSON:", cleanedJson);
       
-      const parsedData = JSON.parse(cleanedJson) as GeminiResponse;
+      const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
+        accountInfo: {
+          accountName: string | null;
+          institutionName: string | null;
+          accountNumber: string | null;
+          accountType: string | null;
+        };
+      };
 
-      // Get account selection from user
-      const accountId = await confirm();
+      // Get account selection from user with suggested account
+      const accountId = await confirm({
+        suggestedAccount: parsedData.accountInfo
+      });
+      
       if (!accountId) {
         toast.error("Please select an account to continue.");
         return;

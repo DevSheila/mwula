@@ -5,15 +5,13 @@ type AccountColumnProps = {
   accountId: string;
   institutionName: string;
   accountNumber?: string;
-  currency: string;
 };
 
 export const AccountColumn = ({ 
   account, 
   accountId, 
   institutionName,
-  accountNumber,
-  currency
+  accountNumber 
 }: AccountColumnProps) => {
   const { onOpen: onOpenAccount } = useOpenAccount();
 
@@ -26,10 +24,9 @@ export const AccountColumn = ({
     >
       <span className="font-medium group-hover:underline">{account}</span>
       <span className="text-sm text-muted-foreground">{institutionName}</span>
-      <div className="text-xs text-muted-foreground">
-        {accountNumber && <span>#{accountNumber} • </span>}
-        <span>{currency}</span>
-      </div>
+      {accountNumber && (
+        <span className="text-xs text-muted-foreground">#{accountNumber}</span>
+      )}
     </button>
   );
 };

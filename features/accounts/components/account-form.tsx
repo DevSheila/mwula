@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { insertAccountSchema } from "@/db/schema";
+import currencies from "@/lib/currencies";
 import { 
     Form,
     FormControl,
@@ -27,6 +28,7 @@ const formSchema = insertAccountSchema.pick({
     name: true,
     institutionName: true,
     accountNumber: true,
+    currency: true,
 });
 
 type FormValues = z.input<typeof formSchema>;
@@ -156,6 +158,41 @@ export const AccountForm = ({
                                     {...field}
                                 />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    name="currency"
+                    control={form.control}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Currency</FormLabel>
+                            <Select
+                                disabled={disabled}
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                defaultValue={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue 
+                                            defaultValue={field.value} 
+                                            placeholder="Select a currency" 
+                                        />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {currencies.map((currency) => (
+                                        <SelectItem
+                                            key={currency.code}
+                                            value={currency.code}
+                                        >
+                                            {currency.code} - {currency.name} ({currency.symbol})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}

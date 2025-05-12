@@ -51,6 +51,7 @@ export const NewAccountSheet = () => {
                         name: "",
                         institutionName: "",
                         accountNumber: "",
+                        currency: "KES",
                     }}
                 />
             </SheetContent>

@@ -67,10 +67,12 @@ export const EditAccountSheet = () => {
         name: accountQuery.data.name,
         institutionName: accountQuery.data.institutionName,
         accountNumber: accountQuery.data.accountNumber || "",
+        currency: accountQuery.data.currency,
     } : {
         name: "",
         institutionName: "",
         accountNumber: "",
+        currency: "KES",
     }
 
     return (

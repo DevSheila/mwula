@@ -1,5 +1,5 @@
 {
-  "id": "8705cdec-3e03-49b0-96b7-d9394106c743",
+  "id": "77f5ff22-a01e-4824-b550-b9e67d3657ae",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
@@ -31,6 +31,25 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "institution_name": {
+          "name": "institution_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'KES'"
         }
       },
       "indexes": {},

@@ -81,6 +81,22 @@ export const columns: ColumnDef<Account>[] = [
         },
     },
     {
+        accessorKey: "currency",
+        header: "Currency",
+        cell: ({ row }) => {
+            const { onOpen } = useOpenAccount();
+            return (
+                <Button
+                    variant="ghost"
+                    className="p-0 font-medium hover:underline"
+                    onClick={() => onOpen(row.original.id)}
+                >
+                    {row.getValue("currency")}
+                </Button>
+            );
+        },
+    },
+    {
         id: "actions",
         cell: ({ row }) => <Actions id={row.original.id} />
     }

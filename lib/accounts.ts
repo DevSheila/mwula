@@ -42,7 +42,7 @@ export const kenyanFinancialAccounts: FinancialAccount[] = [
     id: 6,
     account_name: "Foreign Currency Account (Bank)",
     account_category: "Day-to-Day-Operations",
-    description: "A bank account denominated in a foreign currency (e.g., USD, EUR, GBP) used by individuals or businesses receiving or making payments in those currencies."
+    description: "A bank account denominated in a foreign currency (e.g., KES,USD) used by individuals or businesses receiving or making payments in those currencies."
   },
   {
     id: 7,

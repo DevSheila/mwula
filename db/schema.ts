@@ -10,6 +10,7 @@ export const accounts = pgTable("accounts", {
     userId: text("user_id").notNull(),
     institutionName: text("institution_name").notNull(),
     accountNumber: text("account_number").notNull(),
+    currency: text("currency").notNull().default("KES"),
 });
 
 export const accountsRelations = relations(accounts, ({ many }) => ({

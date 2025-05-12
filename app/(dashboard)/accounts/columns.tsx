@@ -60,9 +60,24 @@ export const columns: ColumnDef<Account>[] = [
     },
     {
         accessorKey: "accountNumber",
-        header: "Account Number",
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                >
+                    Account Number
+                    <ArrowUpDown className="ml-2 size-4" />
+                </Button>
+            )
+        },
         cell: ({ row }) => {
-            return <span>#{row.getValue("accountNumber")}</span>;
+            const accountNumber = row.getValue("accountNumber");
+            return accountNumber ? (
+                <span className="font-medium">{accountNumber}</span>
+            ) : (
+                <span className="text-muted-foreground">Not provided</span>
+            );
         },
     },
     {

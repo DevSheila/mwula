@@ -142,6 +142,8 @@ const app = new Hono()
       "json",
       insertAccountSchema.pick({
         name: true,
+        institutionName: true,
+        accountNumber: true,
       })
     ),
     async (ctx) => {

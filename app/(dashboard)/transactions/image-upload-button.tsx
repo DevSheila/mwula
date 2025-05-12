@@ -73,7 +73,7 @@ export const ImageUploadButton = ({ onUpload, onClose }: DocumentUploadButtonPro
           {
             "date": "YYYY-MM-DD",
             "payee": "name of payer/payee",
-            "amount": total amount as is(e.g. 154.06 should be 154.06 , but 154 should be 154.00),
+            "amount": total amount as is(e.g. 154.06 should be 154.06 ),
             "type": "EXPENSE" or "INCOME",
             "notes": "Include document type (receipt/check/invoice), document number if available, and relevant details",
             "category": "name of the most appropriate category from the list below"

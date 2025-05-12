@@ -113,6 +113,7 @@ export const columns: ColumnDef<ResponseType>[] = [
     },
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"));
+      console.log("Amount value", row.getValue("amount"));
       return (
         <Badge
           variant={amount < 0 ? "destructive" : "primary"}

@@ -37,6 +37,15 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
     return text;
   };
 
+  const convertAmount = (amount: number, type: string): number => {
+    // Convert the amount to a string with 2 decimal places
+    const amountStr = amount.toFixed(2);
+    // Remove the decimal point and convert back to number
+    const cents = parseInt(amountStr.replace('.', ''));
+    // Apply the sign based on transaction type
+    return type === "EXPENSE" ? -cents : cents;
+  };
+
   const processPDFDocuments = async (files: FileList) => {
     try {
       setIsProcessing(true);
@@ -72,7 +81,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
           {
             "date": "YYYY-MM-DD",
             "payee": "name of payer/payee",
-            "amount": total amount as is(e.g. 154.06 should be 154.06 , but 154 should be 154.00),
+            "amount": total amount as a number with exact precision (e.g., 17000.00 should be 17000.00, 56 should be 56.00),
             "type": "EXPENSE" or "INCOME",
             "notes": "Include document type (statement/invoice), document number if available, and relevant details",
             "category": "name of the most appropriate category from the list below"
@@ -87,6 +96,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       - For statements: extract each transaction with its corresponding payee
       - For invoices: payee is the billing entity
       - Choose the most appropriate category from the provided list based on the transaction details
+      - IMPORTANT: Preserve exact amount values. Do not round or modify the amounts. If an amount is 17000.00, keep it as 17000.00, not 1700.00
       
       Transaction Types:
       - EXPENSE: Money going out (debits, payments made, bills)
@@ -125,7 +135,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
 
         return {
           accountId: accountId as string,
-          amount: Math.round(transaction.amount * (transaction.type === "EXPENSE" ? -100 : 100)),
+          amount: convertAmount(transaction.amount, transaction.type),
           payee: transaction.payee,
           date: new Date(transaction.date),
           notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`,

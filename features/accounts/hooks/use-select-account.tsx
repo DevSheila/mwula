@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateAccount } from "@/features/accounts/api/use-create-account";
 import { useGetAccounts } from "@/features/accounts/api/use-get-accounts";
+import { AccountForm } from "@/features/accounts/components/account-form";
+import { z } from "zod";
+import { insertAccountSchema } from "@/db/schema";
 
 type SuggestedAccount = {
   accountName: string | null;
@@ -24,6 +27,8 @@ type ConfirmOptions = {
   suggestedAccount?: SuggestedAccount;
 };
 
+type FormValues = z.input<typeof insertAccountSchema>;
+
 export const useSelectAccount = (): [
   () => JSX.Element,
   (options?: ConfirmOptions) => Promise<unknown>,
@@ -31,18 +36,7 @@ export const useSelectAccount = (): [
   const accountQuery = useGetAccounts();
   const accountMutation = useCreateAccount();
   const [suggestedAccount, setSuggestedAccount] = useState<SuggestedAccount | null>(null);
-
-  const onCreateAccount = (name: string) => {
-    // If we have suggested account info, use it when creating the account
-    if (suggestedAccount) {
-      return accountMutation.mutate({
-        name: name || suggestedAccount.accountName || '',
-        institutionName: suggestedAccount.institutionName || 'Unknown Institution',
-        accountNumber: suggestedAccount.accountNumber || '',
-      });
-    }
-    return accountMutation.mutate({ name });
-  };
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   const accountOptions = (accountQuery.data ?? []).map((account) => ({
     label: `${account.name} (${account.institutionName}${account.accountNumber ? ` - #${account.accountNumber}` : ''})`,
@@ -71,6 +65,7 @@ export const useSelectAccount = (): [
   const handleClose = () => {
     setPromise(null);
     setSuggestedAccount(null);
+    setIsCreatingAccount(false);
   };
 
   const handleConfirm = () => {
@@ -81,6 +76,27 @@ export const useSelectAccount = (): [
   const handleCancel = () => {
     promise?.resolve(undefined);
     handleClose();
+  };
+
+  const handleCreateAccount = () => {
+    setIsCreatingAccount(true);
+  };
+
+  const handleAccountFormSubmit = async (values: FormValues) => {
+    try {
+      const response = await accountMutation.mutateAsync({
+        name: values.name,
+        institutionName: values.institutionName,
+        accountNumber: values.accountNumber,
+        currency: values.currency || "KES",
+      });
+      // After creating the account, select it automatically
+      selectValue.current = response.data.id;
+      handleConfirm();
+    } catch (error) {
+      // Error is handled by the mutation itself
+      setIsCreatingAccount(false);
+    }
   };
 
   const ConfirmationDialog = () => {
@@ -106,21 +122,45 @@ export const useSelectAccount = (): [
             </DialogDescription>
           </DialogHeader>
 
-          <Select
-            placeholder="Select an account"
-            options={accountOptions}
-            onCreate={onCreateAccount}
-            onChange={(value) => (selectValue.current = value)}
-            disabled={accountQuery.isLoading || accountMutation.isPending}
-            defaultValue={suggestedAccount?.accountName || ''}
-          />
+          {isCreatingAccount ? (
+            <AccountForm
+              onSubmit={handleAccountFormSubmit}
+              disabled={accountMutation.isPending}
+              defaultValues={{
+                name: suggestedAccount?.accountName || '',
+                institutionName: suggestedAccount?.institutionName || '',
+                accountNumber: suggestedAccount?.accountNumber || '',
+                currency: 'KES',
+              }}
+            />
+          ) : (
+            <>
+              <Select
+                placeholder="Select an account"
+                options={accountOptions}
+                onChange={(value) => (selectValue.current = value)}
+                disabled={accountQuery.isLoading || accountMutation.isPending}
+              />
 
-          <DialogFooter className="pt-2">
-            <Button onClick={handleCancel} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirm}>Confirm</Button>
-          </DialogFooter>
+              <DialogFooter className="pt-2 flex flex-col gap-2 sm:flex-row sm:justify-between">
+                <Button
+                  type="button"
+                  onClick={handleCreateAccount}
+                  variant="outline"
+                >
+                  Create New Account
+                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={handleCancel} variant="outline">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleConfirm}>
+                    Confirm
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     );

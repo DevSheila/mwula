@@ -20,6 +20,7 @@ const formSchema = insertAccountSchema.pick({
     name: true,
     institutionName: true,
     accountNumber: true,
+    currency: true,
 });
 
 type FormValues = z.input<typeof formSchema>;
@@ -31,7 +32,6 @@ export const EditAccountSheet = () => {
         "Are you sure?",
         "You are about to delete this account."
     );
-
 
     const accountQuery = useGetAccount(id);
     const editMutation = useEditAccount(id);
@@ -72,7 +72,7 @@ export const EditAccountSheet = () => {
         name: "",
         institutionName: "",
         accountNumber: "",
-        currency: "KESyy",
+        currency: "KES",
     }
 
     return (
@@ -95,16 +95,16 @@ export const EditAccountSheet = () => {
                             </div>
                         ) : (
                             <AccountForm
-                        id={id}
-                        onSubmit={onSubmit} 
-                        disabled={isPending}
-                        defaultValues={defaultValues}
-                        onDelete={onDelete}
-                    />
+                                id={id}
+                                onSubmit={onSubmit} 
+                                disabled={isPending}
+                                defaultValues={defaultValues}
+                                onDelete={onDelete}
+                            />
                         )
                     }
                 </SheetContent>
-                </Sheet>
-            </>
+            </Sheet>
+        </>
     );
 };

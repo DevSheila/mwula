@@ -77,6 +77,7 @@ const app = new Hono()
         name: true,
         institutionName: true,
         accountNumber: true,
+        currency: true,
       })
     ),
     async (ctx) => {
@@ -146,6 +147,7 @@ const app = new Hono()
         name: true,
         institutionName: true,
         accountNumber: true,
+        currency: true,
       })
     ),
     async (ctx) => {

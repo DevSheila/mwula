@@ -1,5 +1,6 @@
 import { type IconType } from "react-icons";
 import { cva, type VariantProps } from "class-variance-authority";
+import { useEffect, useState } from "react";
 
 import {
   Card,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatCurrency, formatPercentage } from "@/lib/utils";
+import { convertCurrency } from "@/lib/currency-converter";
 
 import { CountUp } from "./count-up";
 
@@ -51,6 +53,8 @@ type DataCardProps = BoxVariants &
     value?: number;
     dateRange: string;
     percentageChange?: number;
+    currency: string;
+    sourceCurrency?: string;
   };
 
 export const DataCard = ({
@@ -60,7 +64,34 @@ export const DataCard = ({
   icon: Icon,
   variant,
   dateRange,
+  currency,
+  sourceCurrency = "KES", // Default currency from schema
 }: DataCardProps) => {
+  const [convertedValue, setConvertedValue] = useState(value);
+  const [isConverting, setIsConverting] = useState(false);
+
+  useEffect(() => {
+    const convert = async () => {
+      if (sourceCurrency === currency) {
+        setConvertedValue(value);
+        return;
+      }
+
+      setIsConverting(true);
+      try {
+        const converted = await convertCurrency(value, sourceCurrency, currency);
+        setConvertedValue(converted);
+      } catch (error) {
+        console.error("Failed to convert currency:", error);
+        setConvertedValue(value);
+      } finally {
+        setIsConverting(false);
+      }
+    };
+
+    convert();
+  }, [value, currency, sourceCurrency]);
+
   return (
     <Card className="border-none drop-shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-x-4">
@@ -78,16 +109,20 @@ export const DataCard = ({
       </CardHeader>
 
       <CardContent>
-        <h1 className="mb-2 line-clamp-1 break-all text-2xl font-bold">
-          <CountUp
-            preserveValue
-            start={0}
-            end={value}
-            decimals={2}
-            decimalPlaces={2}
-            formattingFn={formatCurrency}
-          />
-        </h1>
+        {isConverting ? (
+          <Skeleton className="mb-2 h-8 w-32" />
+        ) : (
+          <h1 className="mb-2 line-clamp-1 break-all text-2xl font-bold">
+            <CountUp
+              preserveValue
+              start={0}
+              end={convertedValue}
+              decimals={2}
+              decimalPlaces={2}
+              formattingFn={(value) => formatCurrency(value, { currency })}
+            />
+          </h1>
+        )}
 
         <p
           className={cn(

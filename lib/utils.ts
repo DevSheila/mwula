@@ -20,13 +20,16 @@ export function convertAmountToMiliunits(amount: number) {
   return Math.round(amount * 100);
 }
 
-export function formatCurrency(value: number, currencyCode: string = "KES") {
-  const symbol = getCurrencySymbol(currencyCode);
-  return Intl.NumberFormat("en-us", {
-    style: "decimal",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value).replace(/^/, symbol);
+export function formatCurrency(
+  value: number,
+  options: { currency?: string } = {}
+): string {
+  const { currency = "KES" } = options;
+  
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+  }).format(value);
 }
 
 export function calculatePercentageChange(current: number, previous: number) {

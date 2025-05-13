@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateAccount } from "@/features/accounts/api/use-create-account";
 import { useGetAccounts } from "@/features/accounts/api/use-get-accounts";
-import { AccountForm } from "@/features/accounts/components/account-form";
 
 type SuggestedAccount = {
   accountName: string | null;
@@ -32,13 +31,17 @@ export const useSelectAccount = (): [
   const accountQuery = useGetAccounts();
   const accountMutation = useCreateAccount();
   const [suggestedAccount, setSuggestedAccount] = useState<SuggestedAccount | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const onCreateAccount = async (values: { name: string; institutionName: string; accountNumber: string; currency: string }) => {
-    const result = await accountMutation.mutateAsync(values);
-    selectValue.current = result.data.id;
-    setShowCreateForm(false);
-    handleConfirm();
+  const onCreateAccount = (name: string) => {
+    // If we have suggested account info, use it when creating the account
+    if (suggestedAccount) {
+      return accountMutation.mutate({
+        name: name || suggestedAccount.accountName || '',
+        institutionName: suggestedAccount.institutionName || 'Unknown Institution',
+        accountNumber: suggestedAccount.accountNumber || '',
+      });
+    }
+    return accountMutation.mutate({ name });
   };
 
   const accountOptions = (accountQuery.data ?? []).map((account) => ({
@@ -68,7 +71,6 @@ export const useSelectAccount = (): [
   const handleClose = () => {
     setPromise(null);
     setSuggestedAccount(null);
-    setShowCreateForm(false);
   };
 
   const handleConfirm = () => {
@@ -104,44 +106,21 @@ export const useSelectAccount = (): [
             </DialogDescription>
           </DialogHeader>
 
-          {!showCreateForm ? (
-            <>
-              <Select
-                placeholder="Select an account"
-                options={accountOptions}
-                onChange={(value) => (selectValue.current = value)}
-                disabled={accountQuery.isLoading || accountMutation.isPending}
-              />
+          <Select
+            placeholder="Select an account"
+            options={accountOptions}
+            onCreate={onCreateAccount}
+            onChange={(value) => (selectValue.current = value)}
+            disabled={accountQuery.isLoading || accountMutation.isPending}
+            defaultValue={suggestedAccount?.accountName || ''}
+          />
 
-              <Button 
-                onClick={() => setShowCreateForm(true)}
-                variant="outline"
-                className="w-full"
-              >
-                Create New Account
-              </Button>
-
-              <DialogFooter className="pt-2">
-                <Button onClick={handleCancel} variant="outline">
-                  Cancel
-                </Button>
-                <Button onClick={handleConfirm} disabled={!selectValue.current}>
-                  Confirm
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <AccountForm
-              onSubmit={onCreateAccount}
-              disabled={accountMutation.isPending}
-              defaultValues={{
-                name: suggestedAccount?.accountName || "",
-                institutionName: suggestedAccount?.institutionName || "",
-                accountNumber: suggestedAccount?.accountNumber || "",
-                currency: "KES", // Default to KES since it's a Kenyan app
-              }}
-            />
-          )}
+          <DialogFooter className="pt-2">
+            <Button onClick={handleCancel} variant="outline">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>Confirm</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );

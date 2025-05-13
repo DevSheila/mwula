@@ -27,7 +27,7 @@ export const DateFilter = () => {
   const to = searchParams.get("to") || "";
 
   const defaultTo = new Date();
-  const defaultFrom = subDays(defaultTo, 30);
+  const defaultFrom = subDays(defaultTo, 364);
 
   const paramState = {
     from: from ? new Date(from) : defaultFrom,

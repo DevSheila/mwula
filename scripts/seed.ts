@@ -49,7 +49,7 @@
 // ];
 
 // const defaultTo = new Date();
-// const defaultFrom = subDays(defaultTo, 30);
+// const defaultFrom = subDays(defaultTo, 364);
 
 // const SEED_TRANSACTIONS: (typeof transactions.$inferSelect)[] = [];
 

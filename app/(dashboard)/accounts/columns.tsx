@@ -16,6 +16,7 @@ interface Account {
     name: string;
     institutionName: string;
     accountNumber: string;
+    currency: string;
 }
 
 export const columns: ColumnDef<Account>[] = [
@@ -82,17 +83,23 @@ export const columns: ColumnDef<Account>[] = [
     },
     {
         accessorKey: "currency",
-        header: "Currency",
-        cell: ({ row }) => {
-            const { onOpen } = useOpenAccount();
+        header: ({ column }) => {
             return (
                 <Button
                     variant="ghost"
-                    className="p-0 font-medium hover:underline"
-                    onClick={() => onOpen(row.original.id)}
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
-                    {row.getValue("currency")}
+                    Currency
+                    <ArrowUpDown className="ml-2 size-4" />
                 </Button>
+            )
+        },
+        cell: ({ row }) => {
+            const currency = row.getValue("currency");
+            return currency ? (
+                <span className="font-medium">{currency}</span>
+            ) : (
+                <span className="text-muted-foreground">KES</span>
             );
         },
     },

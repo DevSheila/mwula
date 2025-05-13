@@ -22,7 +22,6 @@ const app = new Hono()
         name: accounts.name,
         institutionName: accounts.institutionName,
         accountNumber: accounts.accountNumber,
-        currency: accounts.currency,
       })
       .from(accounts)
       .where(eq(accounts.userId, auth.userId));
@@ -56,7 +55,6 @@ const app = new Hono()
           name: accounts.name,
           institutionName: accounts.institutionName,
           accountNumber: accounts.accountNumber,
-          currency: accounts.currency,
         })
         .from(accounts)
         .where(and(eq(accounts.userId, auth.userId), eq(accounts.id, id)));
@@ -77,7 +75,6 @@ const app = new Hono()
         name: true,
         institutionName: true,
         accountNumber: true,
-        currency: true,
       })
     ),
     async (ctx) => {
@@ -147,7 +144,6 @@ const app = new Hono()
         name: true,
         institutionName: true,
         accountNumber: true,
-        currency: true,
       })
     ),
     async (ctx) => {

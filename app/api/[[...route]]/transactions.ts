@@ -54,7 +54,6 @@ const app = new Hono()
           notes: transactions.notes,
           account: accounts.name,
           accountId: transactions.accountId,
-          currency: accounts.currency,
         })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))

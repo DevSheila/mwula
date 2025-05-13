@@ -20,7 +20,7 @@ export function convertAmountToMiliunits(amount: number) {
   return Math.round(amount * 100);
 }
 
-export function formatCurrency(value: number, currencyCode: string = "USD") {
+export function formatCurrency(value: number, currencyCode: string = "KES") {
   const symbol = getCurrencySymbol(currencyCode);
   return Intl.NumberFormat("en-us", {
     style: "decimal",

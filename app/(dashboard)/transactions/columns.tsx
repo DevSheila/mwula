@@ -113,13 +113,13 @@ export const columns: ColumnDef<ResponseType>[] = [
     },
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"));
-      console.log("Amount value", row.getValue("amount"));
+      const currency = row.original.currency;
       return (
         <Badge
           variant={amount < 0 ? "destructive" : "primary"}
           className="text-xs font-medium px-3.5 py-2.5"
         >
-          {formatCurrency(amount)}
+          {formatCurrency(amount, currency)}
         </Badge>
       )
     }

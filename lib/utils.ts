@@ -1,9 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { eachDayOfInterval, format, isSameDay, subDays } from "date-fns";
+import currencies from "./currencies";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function getCurrencySymbol(currencyCode: string = "USD"): string {
+  const currency = currencies.find((c) => c.code === currencyCode);
+  return currency?.symbol || "$";
 }
 
 export function convertAmountFromMiliunits(amount: number) {
@@ -14,12 +20,13 @@ export function convertAmountToMiliunits(amount: number) {
   return Math.round(amount * 100);
 }
 
-export function formatCurrency(value: number) {
+export function formatCurrency(value: number, currencyCode: string = "USD") {
+  const symbol = getCurrencySymbol(currencyCode);
   return Intl.NumberFormat("en-us", {
-    style: "currency",
-    currency: "USD",
+    style: "decimal",
     minimumFractionDigits: 2,
-  }).format(value);
+    maximumFractionDigits: 2,
+  }).format(value).replace(/^/, symbol);
 }
 
 export function calculatePercentageChange(current: number, previous: number) {

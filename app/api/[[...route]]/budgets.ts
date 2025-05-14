@@ -123,6 +123,7 @@ const app = new Hono()
         .values({
           id: createId(),
           userId: auth.userId,
+          spent: 0,
           ...values,
         })
         .returning();

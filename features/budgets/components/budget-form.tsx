@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { addMonths } from "date-fns";
 
 import { AmountInput } from "@/components/amount-input";
 import { DatePicker } from "@/components/date-picker";
@@ -22,9 +23,18 @@ import { convertAmountToMiliunits } from "@/lib/utils";
 const formSchema = z.object({
   name: z.string().optional(),
   categoryId: z.string().nullable().optional(),
-  amount: z.string(),
+  amount: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num > 0;
+  }, "Amount must be greater than 0"),
   period: z.enum(["monthly", "weekly", "yearly"]),
   startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+}).refine((data) => {
+  return data.startDate < data.endDate;
+}, {
+  message: "End date must be after start date",
+  path: ["endDate"],
 });
 
 const apiSchema = insertBudgetSchema.omit({
@@ -35,7 +45,10 @@ const apiSchema = insertBudgetSchema.omit({
 });
 
 type FormValues = z.input<typeof formSchema>;
-type ApiFormValues = z.input<typeof apiSchema>;
+type ApiFormValues = Omit<z.input<typeof apiSchema>, "startDate" | "endDate"> & {
+  startDate: string;
+  endDate: string;
+};
 
 type BudgetFormProps = {
   id?: string;
@@ -66,17 +79,21 @@ export const BudgetForm = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       period: "monthly",
+      startDate: new Date(),
+      endDate: addMonths(new Date(), 1),
       ...defaultValues,
     },
   });
 
   const handleSubmit = (values: FormValues) => {
-    const amount = parseFloat(values.amount);
+    const amount = Math.abs(parseFloat(values.amount));
     const amountInMiliunits = convertAmountToMiliunits(amount);
 
     onSubmit({
       ...values,
       amount: amountInMiliunits,
+      startDate: values.startDate.toISOString(),
+      endDate: values.endDate.toISOString(),
     });
   };
 
@@ -142,13 +159,23 @@ export const BudgetForm = ({
           name="amount"
           control={form.control}
           disabled={disabled}
-          render={({ field }) => (
+          render={({ field: { value, onChange, ...field } }) => (
             <FormItem>
-              <FormLabel>Amount</FormLabel>
+              <FormLabel>Target Amount</FormLabel>
 
               <FormControl>
                 <AmountInput
                   {...field}
+                  value={value}
+                  onChange={(val) => {
+                    // Ensure the value is always positive
+                    if (val) {
+                      const num = parseFloat(val);
+                      onChange(Math.abs(num).toString());
+                    } else {
+                      onChange(val);
+                    }
+                  }}
                   disabled={disabled}
                   placeholder="0.00"
                 />
@@ -189,6 +216,34 @@ export const BudgetForm = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Start Date</FormLabel>
+
+              <FormControl>
+                <DatePicker
+                  value={field.value}
+                  onChange={(date) => {
+                    field.onChange(date);
+                    // Update end date when start date changes
+                    const currentEndDate = form.getValues("endDate");
+                    if (date && currentEndDate <= date) {
+                      form.setValue("endDate", addMonths(date, 1));
+                    }
+                  }}
+                  disabled={disabled}
+                />
+              </FormControl>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          name="endDate"
+          control={form.control}
+          disabled={disabled}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>End Date</FormLabel>
 
               <FormControl>
                 <DatePicker

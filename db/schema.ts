@@ -74,6 +74,7 @@ export const budgets = pgTable("budgets", {
   amount: bigint("amount", { mode: "number" }).notNull(),
   period: text("period", { enum: ["monthly", "weekly", "yearly"] }).notNull(),
   startDate: timestamp("start_date", { mode: "date" }).notNull(),
+  endDate: timestamp("end_date", { mode: "date" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -87,4 +88,5 @@ export const budgetsRelations = relations(budgets, ({ one }) => ({
 
 export const insertBudgetSchema = createInsertSchema(budgets, {
   startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
 });

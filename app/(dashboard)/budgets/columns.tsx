@@ -7,10 +7,19 @@ import { ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { client } from "@/lib/hono";
 import { Actions } from "./actions";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+
+const formatDate = (date: string | null | undefined) => {
+  if (!date) return "-";
+  try {
+    return format(parseISO(date), "MMM d, yyyy");
+  } catch (error) {
+    return "-";
+  }
+};
 
 export type ResponseType = InferResponseType<typeof client.api.budgets.summary.$get, 200>["data"][0];
 
@@ -68,13 +77,13 @@ export const columns: ColumnDef<ResponseType>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Budget
+          Target
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"));
+      const amount = Math.abs(parseFloat(row.getValue("amount")));
       return (
         <Badge variant="outline" className="text-xs font-medium px-3.5 py-2.5">
           {formatCurrency(amount)}
@@ -160,6 +169,50 @@ export const columns: ColumnDef<ResponseType>[] = [
         <Badge variant="secondary" className="capitalize">
           {period}
         </Badge>
+      )
+    }
+  },
+  {
+    accessorKey: "startDate",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Start Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const date = row.getValue("startDate") as string | undefined;
+      return (
+        <span className="text-muted-foreground">
+          {formatDate(date)}
+        </span>
+      )
+    }
+  },
+  {
+    accessorKey: "endDate",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          End Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const date = row.getValue("endDate") as string | undefined;
+      return (
+        <span className="text-muted-foreground">
+          {formatDate(date)}
+        </span>
       )
     }
   },

@@ -1,5 +1,5 @@
 {
-  "id": "1c4b1016-8e33-4e0e-a003-0ad5af415261",
+  "id": "26b8ec68-986e-441e-a230-4167847ae0ff",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
@@ -99,6 +99,12 @@
         },
         "start_date": {
           "name": "start_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true

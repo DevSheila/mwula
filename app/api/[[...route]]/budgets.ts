@@ -26,6 +26,7 @@ const app = new Hono()
           amount: budgets.amount,
           period: budgets.period,
           startDate: budgets.startDate,
+          endDate: budgets.endDate,
           category: categories.name,
           categoryId: budgets.categoryId,
         })
@@ -58,6 +59,7 @@ const app = new Hono()
           amount: budgets.amount,
           period: budgets.period,
           startDate: budgets.startDate,
+          endDate: budgets.endDate,
           category: categories.name,
           categoryId: budgets.categoryId,
           spent: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`.as("spent"),
@@ -80,6 +82,7 @@ const app = new Hono()
           budgets.amount,
           budgets.period,
           budgets.startDate,
+          budgets.endDate,
           categories.name,
           budgets.categoryId
         )
@@ -116,6 +119,7 @@ const app = new Hono()
           amount: budgets.amount,
           period: budgets.period,
           startDate: budgets.startDate,
+          endDate: budgets.endDate,
           categoryId: budgets.categoryId,
         })
         .from(budgets)

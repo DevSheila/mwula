@@ -63,3 +63,30 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
 export const insertTransactionSchema = createInsertSchema(transactions, {
     date: z.coerce.date(),
 });
+
+export const budgets = pgTable("budgets", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    spent: bigint("spent", { mode: "number" }).notNull().default(0),
+    startDate: timestamp("start_date", { mode: "date" }).notNull(),
+    endDate: timestamp("end_date", { mode: "date" }).notNull(),
+    categoryId: text("category_id").references(() => categories.id, {
+        onDelete: "cascade",
+    }).notNull(),
+    userId: text("user_id").notNull(),
+    isRecurring: integer("is_recurring").default(0).notNull(),
+    recurringPeriod: text("recurring_period"), // monthly, quarterly, yearly
+});
+
+export const budgetsRelations = relations(budgets, ({ one }) => ({
+    category: one(categories, {
+        fields: [budgets.categoryId],
+        references: [categories.id],
+    }),
+}));
+
+export const insertBudgetSchema = createInsertSchema(budgets, {
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+});

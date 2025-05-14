@@ -88,3 +88,71 @@ Welcome to my Finance Platform project! This platform is designed to help you ma
 
 6. **Monetization:**
    - Monetize your platform by integrating Lemon Squeezy for payment processing.
+
+
+1. **Database Schema (`db/schema.ts`)**
+- Added `budgets` table with fields for name, amount, category, dates, and recurring settings
+- Created relationships with categories table
+- Added Zod schema for validation
+
+2. **Page Component (`app/budgets/page.tsx`)**
+- Created a new page for budgets management
+- Implements the layout pattern used in other pages
+- Includes the BudgetForm and BudgetsList components
+
+3. **Form Component (`app/budgets/components/budget-form.tsx`)**
+- Uses React Hook Form for form management
+- Implements shadcn/ui components for consistent UI
+- Handles budget creation with proper validation
+- Supports recurring budgets with period selection
+- Uses TanStack Query for cache invalidation
+
+4. **List Component (`app/budgets/components/budgets-list.tsx`)**
+- Uses TanStack Table for data display
+- Implements sorting, filtering, and pagination
+- Shows budget progress with visual indicators
+- Formats dates and currency values
+- Displays recurring status with badges
+
+5. **Custom Hook (`app/budgets/hooks/use-budgets.ts`)**
+- Implements TanStack Query for data fetching
+- Handles loading and error states
+- Provides caching and auto-refresh functionality
+
+6. **API Routes (`app/api/budgets/route.ts`)**
+- Implements GET and POST endpoints
+- Uses Drizzle ORM for database operations
+- Includes proper error handling
+- Calculates budget progress based on transactions
+- Implements authentication checks
+
+**Key Features:**
+1. Create and manage budgets with names and amounts
+2. Associate budgets with expense categories
+3. Set date ranges for budgets
+4. Support for recurring budgets (monthly, quarterly, yearly)
+5. Visual progress tracking
+6. Sorting and filtering capabilities
+7. Responsive design
+8. Real-time updates with TanStack Query
+
+**Used Patterns:**
+1. React Hook Form for form management
+2. TanStack Query for server state management
+3. TanStack Table for data display
+4. Drizzle ORM for database operations
+5. Shadcn/ui components for consistent UI
+6. Custom hooks for reusable logic
+7. API routes for data operations
+8. Authentication with Clerk
+9. Progressive loading states
+10. Error handling and user feedback
+
+The feature is now ready to use. Users can:
+1. View all their budgets in a table
+2. Create new budgets
+3. Track spending progress against budgets
+4. Filter and sort budgets
+5. Set up recurring budgets
+
+

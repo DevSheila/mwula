@@ -49,44 +49,99 @@ const app = new Hono()
       }
 
       const currentDate = new Date();
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const data = await db
-        .select({
-          id: budgets.id,
-          name: budgets.name,
-          amount: budgets.amount,
-          period: budgets.period,
-          startDate: budgets.startDate,
-          endDate: budgets.endDate,
-          category: categories.name,
-          categoryId: budgets.categoryId,
-          spent: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`.as("spent"),
-        })
+      // Helper function to get period start and end dates
+      const getPeriodDates = (budget: typeof budgets.$inferSelect) => {
+        const startDate = new Date(budget.startDate);
+        const endDate = new Date(budget.endDate);
+        
+        switch (budget.period) {
+          case "monthly": {
+            // Get first and last day of current month
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            return { firstDay, lastDay };
+          }
+          case "weekly": {
+            // Get first and last day of current week (Monday-Sunday)
+            const firstDay = new Date(currentDate);
+            firstDay.setDate(currentDate.getDate() - currentDate.getDay() + 1);
+            const lastDay = new Date(firstDay);
+            lastDay.setDate(firstDay.getDate() + 6);
+            return { firstDay, lastDay };
+          }
+          case "yearly": {
+            // Get first and last day of current year
+            const firstDay = new Date(currentDate.getFullYear(), 0, 1);
+            const lastDay = new Date(currentDate.getFullYear(), 11, 31);
+            return { firstDay, lastDay };
+          }
+          default:
+            return { firstDay: startDate, lastDay: endDate };
+        }
+      };
+
+      // Get all budgets for the user
+      const userBudgets = await db
+        .select()
         .from(budgets)
-        .leftJoin(categories, eq(budgets.categoryId, categories.id))
-        .leftJoin(
-          transactions,
-          and(
-            eq(transactions.categoryId, budgets.categoryId),
-            gte(transactions.date, firstDayOfMonth),
-            lte(transactions.date, lastDayOfMonth),
-            sql`${transactions.amount} > 0`
-          )
-        )
-        .where(eq(budgets.userId, auth.userId))
-        .groupBy(
-          budgets.id,
-          budgets.name,
-          budgets.amount,
-          budgets.period,
-          budgets.startDate,
-          budgets.endDate,
-          categories.name,
-          budgets.categoryId
-        )
-        .orderBy(desc(budgets.createdAt));
+        .where(eq(budgets.userId, auth.userId));
+
+      // Calculate period dates for each budget
+      const budgetPeriods = userBudgets.map(budget => ({
+        ...budget,
+        ...getPeriodDates(budget)
+      }));
+
+      // Get summary with actual spending for each budget
+      const data = await Promise.all(
+        budgetPeriods.map(async (budget) => {
+          // Get total spending for this budget's category within its period
+          const [spendingResult] = await db
+            .select({
+              spent: sql<number>`COALESCE(SUM(
+                CASE 
+                  WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount})  -- Convert negative amounts to positive
+                  ELSE 0  -- Ignore positive amounts as they are income
+                END
+              ), 0)`.as("spent"),
+            })
+            .from(transactions)
+            .where(
+              and(
+                budget.categoryId ? eq(transactions.categoryId, budget.categoryId) : undefined,
+                gte(transactions.date, budget.firstDay),
+                lte(transactions.date, budget.lastDay)
+              )
+            );
+
+          // Get category name if categoryId exists
+          const [category] = budget.categoryId ? await db
+            .select()
+            .from(categories)
+            .where(eq(categories.id, budget.categoryId)) : [];
+
+          const spent = spendingResult?.spent || 0;
+          const remaining = budget.amount - spent;
+          const progress = (spent / budget.amount) * 100;
+
+          return {
+            id: budget.id,
+            name: budget.name,
+            categoryId: budget.categoryId,
+            category: category?.name,
+            amount: budget.amount,
+            period: budget.period,
+            startDate: budget.startDate,
+            endDate: budget.endDate,
+            spent,
+            remaining,
+            progress: Math.min(progress, 100), // Cap at 100% for display purposes
+            periodStart: budget.firstDay,
+            periodEnd: budget.lastDay,
+          };
+        })
+      );
 
       return ctx.json({ data });
     }

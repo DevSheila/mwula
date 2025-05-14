@@ -1,5 +1,3 @@
-"use client"
-
 import { InferResponseType } from "hono";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
@@ -100,17 +98,27 @@ export const columns: ColumnDef<ResponseType>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Spent
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 size-4" />
         </Button>
-      )
+      );
     },
     cell: ({ row }) => {
-      const spent = parseFloat(row.getValue("spent"));
+      const spent = row.getValue("spent") as number;
+      const formatted = formatCurrency(spent);
+      const progress = row.getValue("progress") as number;
+
+      let textColor = "text-muted-foreground";
+      if (progress >= 100) {
+        textColor = "text-destructive font-medium";
+      } else if (progress >= 80) {
+        textColor = "text-warning font-medium";
+      }
+
       return (
-        <Badge variant="outline" className="text-xs font-medium px-3.5 py-2.5">
-          {formatCurrency(spent)}
-        </Badge>
-      )
+        <div className={textColor}>
+          {formatted}
+        </div>
+      );
     }
   },
   {
@@ -122,20 +130,29 @@ export const columns: ColumnDef<ResponseType>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Remaining
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 size-4" />
         </Button>
-      )
+      );
     },
     cell: ({ row }) => {
-      const remaining = parseFloat(row.getValue("remaining"));
+      const remaining = row.getValue("remaining") as number;
+      const formatted = formatCurrency(remaining);
+      const progress = row.getValue("progress") as number;
+
+      let textColor = "text-muted-foreground";
+      if (remaining < 0) {
+        textColor = "text-destructive font-medium";
+      } else if (progress >= 80) {
+        textColor = "text-warning font-medium";
+      } else if (progress < 80) {
+        textColor = "text-primary font-medium";
+      }
+
       return (
-        <Badge
-          variant={remaining < 0 ? "destructive" : "primary"}
-          className="text-xs font-medium px-3.5 py-2.5"
-        >
-          {formatCurrency(remaining)}
-        </Badge>
-      )
+        <div className={textColor}>
+          {formatted}
+        </div>
+      );
     }
   },
   {
@@ -143,11 +160,47 @@ export const columns: ColumnDef<ResponseType>[] = [
     header: "Progress",
     cell: ({ row }) => {
       const progress = row.getValue("progress") as number;
+      const remaining = row.getValue("remaining") as number;
+      const spent = row.getValue("spent") as number;
+      const amount = row.getValue("amount") as number;
+      
+      // Calculate actual percentage (can go over 100%)
+      const actualPercentage = (spent / amount) * 100;
+      
+      // Determine status color and text color
+      let statusColor = "destructive";
+      let textColor = "text-green-500";
+      
+      if (remaining < 0) {
+        statusColor = "destructive";
+        textColor = "text-red-500 font-medium";
+      } else if (progress >= 80) {
+        statusColor = "warning";
+        textColor = "text-yellow-500 font-medium";
+      } else {
+        textColor = "text-green-500 font-medium";
+      }
+
+      // Format percentage display
+      const percentageDisplay = remaining < 0 
+        ? `-${actualPercentage.toFixed(1)}%`
+        : `${Math.min(actualPercentage, 100).toFixed(1)}%`;
+
       return (
-        <div className="w-[100px]">
-          <Progress value={progress} className="h-2" />
+        <div className="w-[160px] space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className={textColor}>{percentageDisplay}</span>
+          </div>
+          <Progress 
+            value={Math.min(progress, 100)} 
+            className={statusColor}
+            style={{
+              "--progress-background": "hsl(var(--muted))",
+              "--progress-foreground": `hsl(var(--${statusColor}))`,
+            } as React.CSSProperties}
+          />
         </div>
-      )
+      );
     }
   },
   {

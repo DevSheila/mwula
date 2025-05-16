@@ -30,6 +30,10 @@ const routes = [
         label: "Categories",
     },
     {
+        href: "/budgets",
+        label: "Budgets",
+    },
+    {
         href: "/settings",
         label: "Settings",
     },

@@ -12,9 +12,9 @@ import { insertBudgetSchema } from "@/db/schema";
 import { useCreateCategory } from "@/features/categories/api/use-create-category";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
 import { useDeleteBudget } from "@/features/budgets/api/use-delete-budget";
-import { useEditBudget } from "@/features/budgets/api/use-edit-budget";
+import { useEditBudget as useEditBudgetMutation } from "@/features/budgets/api/use-edit-budget";
 import { useGetBudget } from "@/features/budgets/api/use-get-budget";
-import { useOpenBudget } from "@/features/budgets/hooks/use-open-budget";
+import { useEditBudget } from "@/features/budgets/hooks/use-edit-budget";
 import { useConfirm } from "@/hooks/use-confirm";
 
 import { BudgetForm } from "./budget-form";
@@ -29,7 +29,7 @@ const formSchema = insertBudgetSchema.omit({
 type FormValues = z.infer<typeof formSchema>;
 
 export const EditBudgetSheet = () => {
-  const { isOpen, onClose, id } = useOpenBudget();
+  const { isOpen, onClose, id } = useEditBudget();
 
   const [ConfirmDialog, confirm] = useConfirm(
     "Are you sure?",
@@ -37,7 +37,7 @@ export const EditBudgetSheet = () => {
   );
 
   const budgetQuery = useGetBudget(id);
-  const editMutation = useEditBudget(id);
+  const editMutation = useEditBudgetMutation(id);
   const deleteMutation = useDeleteBudget(id);
 
   const categoryMutation = useCreateCategory();
@@ -74,6 +74,9 @@ export const EditBudgetSheet = () => {
         startDate: budgetQuery.data.startDate
           ? new Date(budgetQuery.data.startDate)
           : new Date(),
+        endDate: budgetQuery.data.endDate
+          ? new Date(budgetQuery.data.endDate)
+          : new Date(),
       }
     : {
         name: "",
@@ -81,6 +84,7 @@ export const EditBudgetSheet = () => {
         amount: "",
         period: "monthly",
         startDate: new Date(),
+        endDate: new Date(),
       };
 
   const onDelete = async () => {

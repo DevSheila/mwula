@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDeleteBudget } from "@/features/budgets/api/use-delete-budget";
 import { useOpenBudget } from "@/features/budgets/hooks/use-open-budget";
+import { useEditBudget } from "@/features/budgets/hooks/use-edit-budget";
 import { useConfirm } from "@/hooks/use-confirm";
 
 type ActionsProps = {
@@ -20,6 +21,7 @@ type ActionsProps = {
 export const Actions = ({ id }: ActionsProps) => {
   const deleteMutation = useDeleteBudget(id);
   const { onOpen } = useOpenBudget();
+  const { onOpen: onOpenEdit } = useEditBudget();
 
   const [ConfirmDialog, confirm] = useConfirm(
     "Are you sure?",
@@ -48,6 +50,14 @@ export const Actions = ({ id }: ActionsProps) => {
           <DropdownMenuItem
             disabled={deleteMutation.isPending}
             onClick={() => onOpen(id)}
+          >
+            <FileText className="mr-2 size-4" />
+            View Transactions
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            disabled={deleteMutation.isPending}
+            onClick={() => onOpenEdit(id)}
           >
             <Edit className="mr-2 size-4" />
             Edit

@@ -11,11 +11,14 @@ import { useGetBudgetSummary } from "@/features/budgets/api/use-get-budget-summa
 import { useBulkDeleteBudgets } from "@/features/budgets/api/use-bulk-delete-budgets";
 import { NewBudgetSheet } from "@/features/budgets/components/new-budget-sheet";
 import { EditBudgetSheet } from "@/features/budgets/components/edit-budget-sheet";
+import { BudgetTransactionsSheet } from "@/features/budgets/components/budget-transactions-sheet";
+import { useOpenBudget } from "@/features/budgets/hooks/use-open-budget";
 
 import { columns } from "./columns";
 
 export default function BudgetsPage() {
-  const { onOpen } = useNewBudget();
+  const { onOpen: onOpenNewBudget } = useNewBudget();
+  const { onOpen: onOpenBudget } = useOpenBudget();
   const budgetsQuery = useGetBudgetSummary();
   const deleteBudgets = useBulkDeleteBudgets();
   const budgets = budgetsQuery.data || [];
@@ -49,7 +52,7 @@ export default function BudgetsPage() {
           <div className="flex flex-col items-center gap-x-2 gap-y-2 lg:flex-row">
             <Button
               size="sm"
-              onClick={onOpen}
+              onClick={onOpenNewBudget}
               className="w-full lg:w-auto"
             >
               <Plus className="mr-2 size-4" /> New budget
@@ -66,6 +69,7 @@ export default function BudgetsPage() {
               const ids = row.map((r) => r.original.id);
               deleteBudgets.mutate({ ids });
             }}
+            onRowClick={(row) => onOpenBudget(row.id)}
             disabled={isDisabled}
           />
         </CardContent>
@@ -73,6 +77,7 @@ export default function BudgetsPage() {
 
       <NewBudgetSheet />
       <EditBudgetSheet />
+      <BudgetTransactionsSheet />
     </div>
   );
 } 

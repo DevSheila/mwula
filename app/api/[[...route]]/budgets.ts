@@ -1,12 +1,12 @@
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import { zValidator } from "@hono/zod-validator";
 import { createId } from "@paralleldrive/cuid2";
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/db/drizzle";
-import { budgets, categories, insertBudgetSchema, transactions } from "@/db/schema";
+import { budgets, categories, insertBudgetSchema, transactions, accounts } from "@/db/schema";
 
 const app = new Hono()
   .get(
@@ -183,6 +183,72 @@ const app = new Hono()
       if (!data) {
         return ctx.json({ error: "Not found." }, 404);
       }
+
+      return ctx.json({ data });
+    }
+  )
+  .get(
+    "/:id/transactions",
+    zValidator(
+      "param",
+      z.object({
+        id: z.string().optional(),
+      })
+    ),
+    clerkMiddleware(),
+    async (ctx) => {
+      const auth = getAuth(ctx);
+      const { id } = ctx.req.valid("param");
+
+      if (!id) {
+        return ctx.json({ error: "Missing id." }, 400);
+      }
+
+      if (!auth?.userId) {
+        return ctx.json({ error: "Unauthorized." }, 401);
+      }
+
+      // First get the budget to check ownership and get details
+      const [budget] = await db
+        .select()
+        .from(budgets)
+        .where(and(eq(budgets.id, id), eq(budgets.userId, auth.userId)));
+
+      if (!budget) {
+        return ctx.json({ error: "Not found." }, 404);
+      }
+
+      // Get transactions for this budget's category within its period
+      const data = await db
+        .select({
+          id: transactions.id,
+          date: transactions.date,
+          category: categories.name,
+          categoryId: transactions.categoryId,
+          isUniversal: categories.isUniversal,
+          payee: transactions.payee,
+          amount: transactions.amount,
+          notes: transactions.notes,
+          account: accounts.name,
+          accountId: transactions.accountId,
+          currency: accounts.currency,
+          institutionName: accounts.institutionName,
+          accountNumber: accounts.accountNumber,
+        })
+        .from(transactions)
+        .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(
+          and(
+            budget.categoryId ? eq(transactions.categoryId, budget.categoryId) : undefined,
+            eq(accounts.userId, auth.userId),
+            gte(transactions.date, budget.startDate),
+            lte(transactions.date, budget.endDate),
+            // Only include expenses (negative amounts)
+            lt(transactions.amount, 0)
+          )
+        )
+        .orderBy(desc(transactions.date));
 
       return ctx.json({ data });
     }

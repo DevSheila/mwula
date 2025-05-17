@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash, FileText, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 const CATEGORY_ICONS: { [key: string]: IconType } = {
   'Groceries': FaShoppingCart,
@@ -50,7 +51,6 @@ interface BudgetCardProps {
   startDate: string;
   endDate: string;
   period: "monthly" | "weekly" | "yearly";
-  onView?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
@@ -66,10 +66,11 @@ export const BudgetCard = ({
   startDate,
   endDate,
   period,
-  onView,
   onEdit,
   onDelete,
 }: BudgetCardProps) => {
+  const router = useRouter();
+
   // Get the first category name for icon selection
   const primaryCategory = categories[0]?.name || '';
   const Icon = CATEGORY_ICONS[primaryCategory] || FaShoppingBag;
@@ -98,24 +99,22 @@ export const BudgetCard = ({
   return (
     <Card 
       className={cn(
-        "transition-all duration-200 hover:shadow-md",
+        "transition-all duration-200 hover:shadow-md cursor-pointer",
         "border border-border/50 hover:border-border/100"
       )}
-      onClick={() => onView?.(id)}
+      onClick={() => router.push(`/budgets/${id}`)}
     >
       <CardContent className="pt-6">
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h3 className="font-semibold text-lg">
-                {name || categories[0]?.name || "Untitled Budget"}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">
-                  {formatDateRange()}
-                </p>
-              </div>
+          <div>
+            <h3 className="font-semibold text-lg">
+              {name || categories[0]?.name || "Untitled Budget"}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                {formatDateRange()}
+              </p>
             </div>
           </div>
 
@@ -126,7 +125,10 @@ export const BudgetCard = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => handleAction(e, onView!)}>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/budgets/${id}`);
+              }}>
                 <FileText className="mr-2 size-4" />
                 View Transactions
               </DropdownMenuItem>
@@ -163,12 +165,12 @@ export const BudgetCard = ({
         <div className="space-y-4">
           <div className="flex justify-between items-baseline">
             <span className="text-sm text-muted-foreground">Budget</span>
-            <span className="font-semibold">{formatCurrency(amount)}</span>
+            <span className="text-sm font-medium">{formatCurrency(amount)}</span>
           </div>
 
           <div className="flex justify-between items-baseline">
             <span className="text-sm text-muted-foreground">Spent</span>
-            <span className="font-semibold">{formatCurrency(spent)}</span>
+            <span className="text-sm font-medium">{formatCurrency(spent)}</span>
           </div>
 
           <div className="space-y-2">
@@ -193,4 +195,4 @@ export const BudgetCard = ({
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -18,8 +18,6 @@ import { useGetBudgetSummary } from "@/features/budgets/api/use-get-budget-summa
 import { useDeleteBudget } from "@/features/budgets/api/use-delete-budget";
 import { NewBudgetSheet } from "@/features/budgets/components/new-budget-sheet";
 import { EditBudgetSheet } from "@/features/budgets/components/edit-budget-sheet";
-import { BudgetTransactionsSheet } from "@/features/budgets/components/budget-transactions-sheet";
-import { useOpenBudget } from "@/features/budgets/hooks/use-open-budget";
 import { useEditBudget } from "@/features/budgets/hooks/use-edit-budget";
 import { BudgetCard } from "@/features/budgets/components/budget-card";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -29,7 +27,6 @@ type SortOrder = "asc" | "desc";
 
 export default function BudgetsPage() {
   const { onOpen: onOpenNewBudget } = useNewBudget();
-  const { onOpen: onOpenBudget } = useOpenBudget();
   const { onOpen: onOpenEdit } = useEditBudget();
   const budgetsQuery = useGetBudgetSummary();
   const deleteBudget = useDeleteBudget();
@@ -189,7 +186,6 @@ export default function BudgetsPage() {
                 <BudgetCard
                   key={budget.id}
                   {...budget}
-                  onView={onOpenBudget}
                   onEdit={onOpenEdit}
                   onDelete={handleDelete}
                 />
@@ -202,7 +198,6 @@ export default function BudgetsPage() {
       <ConfirmDialog />
       <NewBudgetSheet />
       <EditBudgetSheet />
-      <BudgetTransactionsSheet />
     </div>
   );
 } 

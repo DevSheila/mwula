@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 type Budget = {
   id: string;
   name: string | null;
-  category: string | null;
+  categories: Array<{ id: string; name: string }>;
   amount: number;
   spent: number;
   remaining: number;
@@ -44,16 +44,28 @@ const columns: ColumnDef<Budget>[] = [
     },
   },
   {
-    accessorKey: "category",
+    accessorKey: "categories",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Category
+          Categories
           <ArrowUpDown className="ml-2 size-4" />
         </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const categories = row.getValue("categories") as Array<{ id: string; name: string }>;
+      return (
+        <div className="flex flex-wrap gap-1">
+          {categories.map(category => (
+            <span key={category.id} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs">
+              {category.name}
+            </span>
+          ))}
+        </div>
       );
     },
   },

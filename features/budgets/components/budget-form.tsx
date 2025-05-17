@@ -22,7 +22,7 @@ import { convertAmountToMiliunits } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().optional(),
-  categoryId: z.string().nullable().optional(),
+  categoryIds: z.array(z.string()).min(1, "At least one category is required"),
   amount: z.string().refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
@@ -48,6 +48,7 @@ type FormValues = z.input<typeof formSchema>;
 type ApiFormValues = Omit<z.input<typeof apiSchema>, "startDate" | "endDate"> & {
   startDate: string;
   endDate: string;
+  categoryIds: string[];
 };
 
 type BudgetFormProps = {
@@ -81,6 +82,7 @@ export const BudgetForm = ({
       period: "monthly",
       startDate: new Date(),
       endDate: addMonths(new Date(), 1),
+      categoryIds: [],
       ...defaultValues,
     },
   });
@@ -132,21 +134,22 @@ export const BudgetForm = ({
         />
 
         <FormField
-          name="categoryId"
+          name="categoryIds"
           control={form.control}
           disabled={disabled}
-          render={({ field }) => (
+          render={({ field: { value, onChange, ...field } }) => (
             <FormItem>
-              <FormLabel>Category</FormLabel>
+              <FormLabel>Categories</FormLabel>
 
               <FormControl>
                 <Select
-                  placeholder="Select a category"
+                  placeholder="Select categories"
                   options={categoryOptions}
                   onCreate={onCreateCategory}
-                  value={field.value}
-                  onChange={field.onChange}
+                  value={value || []}
+                  onChange={onChange}
                   disabled={disabled}
+                  isMulti={true}
                 />
               </FormControl>
 

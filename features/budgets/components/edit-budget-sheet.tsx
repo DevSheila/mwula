@@ -68,7 +68,7 @@ export const EditBudgetSheet = () => {
   const defaultValues = budgetQuery.data
     ? {
         name: budgetQuery.data.name,
-        categoryId: budgetQuery.data.categoryId,
+        categoryIds: budgetQuery.data.categories?.map(c => c.id) || [],
         amount: budgetQuery.data.amount.toString(),
         period: budgetQuery.data.period,
         startDate: budgetQuery.data.startDate
@@ -80,7 +80,7 @@ export const EditBudgetSheet = () => {
       }
     : {
         name: "",
-        categoryId: "",
+        categoryIds: [],
         amount: "",
         period: "monthly",
         startDate: new Date(),

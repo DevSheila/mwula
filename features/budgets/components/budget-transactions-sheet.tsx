@@ -38,9 +38,11 @@ export const BudgetTransactionsSheet = () => {
         <SheetHeader className="flex-row items-center justify-between">
           <div>
             <SheetTitle>
-              {budget?.name || budget?.category || "Budget"} Transactions
+              {budget?.name || "Budget"} Transactions
             </SheetTitle>
             <SheetDescription>
+              Categories: {budget?.categories?.map(c => c.name).join(", ")}
+              <br />
               Showing transactions from {budget?.startDate ? new Date(budget.startDate).toLocaleDateString() : ''} 
               to {budget?.endDate ? new Date(budget.endDate).toLocaleDateString() : ''}
             </SheetDescription>

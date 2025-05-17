@@ -68,9 +68,6 @@ export const budgets = pgTable("budgets", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
   name: text("name"),
-  categoryId: text("category_id").references(() => categories.id, {
-    onDelete: "set null",
-  }),
   amount: bigint("amount", { mode: "number" }).notNull(),
   period: text("period", { enum: ["monthly", "weekly", "yearly"] }).notNull(),
   startDate: timestamp("start_date", { mode: "date" }).notNull(),
@@ -79,9 +76,23 @@ export const budgets = pgTable("budgets", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const budgetsRelations = relations(budgets, ({ one }) => ({
+export const budgetCategories = pgTable("budget_categories", {
+  id: text("id").primaryKey(),
+  budgetId: text("budget_id").references(() => budgets.id, { onDelete: "cascade" }).notNull(),
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull(),
+});
+
+export const budgetsRelations = relations(budgets, ({ many }) => ({
+  budgetCategories: many(budgetCategories),
+}));
+
+export const budgetCategoriesRelations = relations(budgetCategories, ({ one }) => ({
+  budget: one(budgets, {
+    fields: [budgetCategories.budgetId],
+    references: [budgets.id],
+  }),
   category: one(categories, {
-    fields: [budgets.categoryId],
+    fields: [budgetCategories.categoryId],
     references: [categories.id],
   }),
 }));

@@ -1,5 +1,91 @@
 
 
+I'll help you create a guide for detecting and displaying recurring transactions based on the existing codebase patterns. Here's a strategic approach:
+
+1. **Detection Strategy**
+   - Analyze transaction patterns by looking at:
+     * Same payee
+     * Similar amounts (within a small variance threshold)
+     * Regular time intervals between transactions
+   - Key periods to detect:
+     * Weekly (7 days)
+     * Bi-weekly (14 days)
+     * Monthly (28-31 days)
+     * Quarterly (90 days)
+     * Annual (365 days)
+
+2. **Algorithm Components**
+   - Group transactions by payee first
+   - For each payee group:
+     * Calculate time differences between consecutive transactions
+     * Look for regular intervals (with some tolerance)
+     * Check if amounts are similar (allow small variations)
+     * Require minimum occurrences (e.g., 3+ times) to confirm pattern
+     * Calculate confidence score based on regularity
+
+3. **Data Flow Architecture**
+   - Following your existing patterns:
+     * Create new API endpoint `/api/recurring-transactions`
+     * Add new query hook `useGetRecurringTransactions`
+     * Create recurring transactions card component
+     * Integrate with existing summary invalidation
+
+4. **API Structure**
+   - Response should include:
+     * Transaction details (payee, amount, category)
+     * Detected frequency
+     * Confidence score
+     * Next expected date
+     * Historical occurrences
+
+5. **UI/UX Considerations**
+   - Group recurring transactions by frequency
+   - Show confidence level indicator
+   - Display next expected date
+   - Allow sorting by:
+     * Amount
+     * Frequency
+     * Next occurrence
+     * Confidence level
+
+6. **Performance Optimization**
+   - Cache detection results
+   - Analyze only last 12-24 months of transactions
+   - Run detection periodically or on new transaction events
+   - Store results in memory or temporary table
+
+7. **Integration Points**
+   - Invalidate recurring transactions when:
+     * New transaction added
+     * Transaction edited
+     * Transaction deleted
+   - Update summary components
+   - Refresh dashboard data
+
+8. **Edge Cases to Handle**
+   - Irregular intervals (e.g., last day of month)
+   - Amount variations (e.g., utility bills)
+   - Missing transactions in sequence
+   - Multiple frequencies for same payee
+   - Currency conversions
+   - Timezone considerations
+
+9. **Suggested Features**
+   - Filter by confidence level
+   - Export recurring transactions
+   - Notifications for expected transactions
+   - Budget integration
+   - Historical pattern visualization
+
+10. **Implementation Phases**
+    1. Basic detection algorithm
+    2. API endpoint and data structure
+    3. UI components and integration
+    4. Refinements and edge cases
+    5. Advanced features and optimizations
+
+This approach aligns with your existing patterns while adding sophisticated recurring transaction detection capabilities. Would you like me to elaborate on any of these points?
+
 **I. Core Traits of the Budgeting Feature:**
 
 1.  **User-Specific Budgets:**

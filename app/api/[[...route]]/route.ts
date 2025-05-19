@@ -4,6 +4,7 @@ import { handle } from "hono/vercel";
 import accounts from "./accounts";
 import budgets from "./budgets";
 import categories from "./categories";
+import recurring from "./recurring-transactions";
 import summary from "./summary";
 import transactions from "./transactions";
 
@@ -16,7 +17,9 @@ const routes = app
   .route("/budgets", budgets)
   .route("/categories", categories)
   .route("/summary", summary)
-  .route("/transactions", transactions);
+  .route("/transactions", transactions)
+  .route("/recurring-transactions", recurring);
+
 
 export const GET = handle(app);
 export const POST = handle(app);

@@ -4,7 +4,7 @@ import { and, desc, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { accounts, categories, transactions } from "@/db/schema";
 import { sendTransactionSummaryEmail } from "@/lib/email";
-import { calculatePercentageChange } from "@/lib/utils";
+import { calculatePercentageChange, convertAmountFromMiliunits } from "@/lib/utils";
 import { inngest } from "./client";
 
 // Function to fetch financial data
@@ -21,7 +21,7 @@ async function fetchFinancialData(
           Number
         ),
       expenses:
-        sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`.mapWith(
+        sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`.mapWith(
           Number
         ),
       remaining: sum(transactions.amount).mapWith(Number),
@@ -56,11 +56,10 @@ export const testSummaryEmail = inngest.createFunction(
 
     // Calculate date ranges (last 30 days)
     const endDate = new Date();
-    const startDate = subDays(endDate, 30); // 30 days ago
-    const periodLength = 30; // Last 30 days
+    const startDate = subDays(endDate, 60); // 30 days ago
+    const periodLength = 60; // Last 30 days
     const lastPeriodStart = subDays(startDate, periodLength); // Previous 30-day period
     const lastPeriodEnd = subDays(endDate, periodLength);
-
 
     // Fetch current and previous period data
     const [currentPeriod] = await step.run("fetch-current-period", () =>
@@ -73,16 +72,18 @@ export const testSummaryEmail = inngest.createFunction(
 
     // Calculate changes
     const incomeChange = calculatePercentageChange(
-      currentPeriod.income,
-      lastPeriod.income
+      currentPeriod.income || 0,
+      lastPeriod.income || 0
     );
+
     const expensesChange = calculatePercentageChange(
-      currentPeriod.expenses,
-      lastPeriod.expenses
+      currentPeriod.expenses || 0,
+      lastPeriod.expenses || 0
     );
+
     const remainingChange = calculatePercentageChange(
-      currentPeriod.remaining,
-      lastPeriod.remaining
+      currentPeriod.remaining || 0,
+      lastPeriod.remaining || 0
     );
 
     // Fetch spending categories
@@ -90,7 +91,7 @@ export const testSummaryEmail = inngest.createFunction(
       db
         .select({
           name: categories.name,
-          value: sql`SUM(ABS(${transactions.amount}))`.mapWith(Number),
+          value: sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`.mapWith(Number),
         })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -104,14 +105,16 @@ export const testSummaryEmail = inngest.createFunction(
           )
         )
         .groupBy(categories.name)
-        .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`))
+        .orderBy(desc(sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`))
     );
 
-    const topCategories = category.slice(0, 3);
+    const topCategories = category.slice(0, 3).map(cat => ({
+      ...cat,
+      value: convertAmountFromMiliunits(cat.value)
+    }));
     const otherCategories = category.slice(3);
-    const otherSum = otherCategories.reduce(
-      (sum, current) => sum + current.value,
-      0
+    const otherSum = convertAmountFromMiliunits(
+      otherCategories.reduce((sum, current) => sum + current.value, 0)
     );
 
     const finalCategories = topCategories;
@@ -124,12 +127,12 @@ export const testSummaryEmail = inngest.createFunction(
       sendTransactionSummaryEmail({
         to: testUserEmail,
         userName: testUserName || "Test User",
-        remainingAmount: currentPeriod.remaining || 0,
-        remainingChange,
-        incomeAmount: currentPeriod.income || 0,
-        incomeChange,
-        expensesAmount: currentPeriod.expenses || 0,
-        expensesChange,
+        remainingAmount: convertAmountFromMiliunits(currentPeriod.remaining || 0),
+        remainingChange: Math.round(remainingChange * 10) / 10, // Round to 1 decimal place
+        incomeAmount: convertAmountFromMiliunits(currentPeriod.income || 0),
+        incomeChange: Math.round(incomeChange * 10) / 10, // Round to 1 decimal place
+        expensesAmount: -convertAmountFromMiliunits(currentPeriod.expenses || 0),
+        expensesChange: Math.round(-expensesChange * 10) / 10, // Negate and round to 1 decimal place
         categories: finalCategories,
         startDate,
         endDate,
@@ -169,16 +172,18 @@ export const sendMonthlySummaryEmail = inngest.createFunction(
 
     // Calculate changes
     const incomeChange = calculatePercentageChange(
-      currentPeriod.income,
-      lastPeriod.income
+      currentPeriod.income || 0,
+      lastPeriod.income || 0
     );
+
     const expensesChange = calculatePercentageChange(
-      currentPeriod.expenses,
-      lastPeriod.expenses
+      currentPeriod.expenses || 0,
+      lastPeriod.expenses || 0
     );
+
     const remainingChange = calculatePercentageChange(
-      currentPeriod.remaining,
-      lastPeriod.remaining
+      currentPeriod.remaining || 0,
+      lastPeriod.remaining || 0
     );
 
     // Fetch spending categories
@@ -186,7 +191,7 @@ export const sendMonthlySummaryEmail = inngest.createFunction(
       db
         .select({
           name: categories.name,
-          value: sql`SUM(ABS(${transactions.amount}))`.mapWith(Number),
+          value: sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`.mapWith(Number),
         })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -201,14 +206,16 @@ export const sendMonthlySummaryEmail = inngest.createFunction(
           )
         )
         .groupBy(categories.name)
-        .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`))
+        .orderBy(desc(sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`))
     );
 
-    const topCategories = category.slice(0, 3);
+    const topCategories = category.slice(0, 3).map(cat => ({
+      ...cat,
+      value: convertAmountFromMiliunits(cat.value)
+    }));
     const otherCategories = category.slice(3);
-    const otherSum = otherCategories.reduce(
-      (sum, current) => sum + current.value,
-      0
+    const otherSum = convertAmountFromMiliunits(
+      otherCategories.reduce((sum, current) => sum + current.value, 0)
     );
 
     const finalCategories = topCategories;
@@ -221,12 +228,12 @@ export const sendMonthlySummaryEmail = inngest.createFunction(
       sendTransactionSummaryEmail({
         to: email,
         userName: firstName || "there",
-        remainingAmount: currentPeriod.remaining || 0,
-        remainingChange,
-        incomeAmount: currentPeriod.income || 0,
-        incomeChange,
-        expensesAmount: currentPeriod.expenses || 0,
-        expensesChange,
+        remainingAmount: convertAmountFromMiliunits(currentPeriod.remaining || 0),
+        remainingChange: Math.round(remainingChange * 10) / 10, // Round to 1 decimal place
+        incomeAmount: convertAmountFromMiliunits(currentPeriod.income || 0),
+        incomeChange: Math.round(incomeChange * 10) / 10, // Round to 1 decimal place
+        expensesAmount: -convertAmountFromMiliunits(currentPeriod.expenses || 0),
+        expensesChange: Math.round(-expensesChange * 10) / 10, // Negate and round to 1 decimal place
         categories: finalCategories,
         startDate,
         endDate,
@@ -262,16 +269,18 @@ export const sendWeeklySummaryEmail = inngest.createFunction(
 
     // Calculate changes
     const incomeChange = calculatePercentageChange(
-      currentPeriod.income,
-      lastPeriod.income
+      currentPeriod.income || 0,
+      lastPeriod.income || 0
     );
+
     const expensesChange = calculatePercentageChange(
-      currentPeriod.expenses,
-      lastPeriod.expenses
+      currentPeriod.expenses || 0,
+      lastPeriod.expenses || 0
     );
+
     const remainingChange = calculatePercentageChange(
-      currentPeriod.remaining,
-      lastPeriod.remaining
+      currentPeriod.remaining || 0,
+      lastPeriod.remaining || 0
     );
 
     // Fetch spending categories
@@ -279,7 +288,7 @@ export const sendWeeklySummaryEmail = inngest.createFunction(
       db
         .select({
           name: categories.name,
-          value: sql`SUM(ABS(${transactions.amount}))`.mapWith(Number),
+          value: sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`.mapWith(Number),
         })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -294,14 +303,16 @@ export const sendWeeklySummaryEmail = inngest.createFunction(
           )
         )
         .groupBy(categories.name)
-        .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`))
+        .orderBy(desc(sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`))
     );
 
-    const topCategories = category.slice(0, 3);
+    const topCategories = category.slice(0, 3).map(cat => ({
+      ...cat,
+      value: convertAmountFromMiliunits(cat.value)
+    }));
     const otherCategories = category.slice(3);
-    const otherSum = otherCategories.reduce(
-      (sum, current) => sum + current.value,
-      0
+    const otherSum = convertAmountFromMiliunits(
+      otherCategories.reduce((sum, current) => sum + current.value, 0)
     );
 
     const finalCategories = topCategories;
@@ -314,12 +325,12 @@ export const sendWeeklySummaryEmail = inngest.createFunction(
       sendTransactionSummaryEmail({
         to: email,
         userName: firstName || "there",
-        remainingAmount: currentPeriod.remaining || 0,
-        remainingChange,
-        incomeAmount: currentPeriod.income || 0,
-        incomeChange,
-        expensesAmount: currentPeriod.expenses || 0,
-        expensesChange,
+        remainingAmount: convertAmountFromMiliunits(currentPeriod.remaining || 0),
+        remainingChange: Math.round(remainingChange * 10) / 10, // Round to 1 decimal place
+        incomeAmount: convertAmountFromMiliunits(currentPeriod.income || 0),
+        incomeChange: Math.round(incomeChange * 10) / 10, // Round to 1 decimal place
+        expensesAmount: -convertAmountFromMiliunits(currentPeriod.expenses || 0),
+        expensesChange: Math.round(-expensesChange * 10) / 10, // Negate and round to 1 decimal place
         categories: finalCategories,
         startDate,
         endDate,

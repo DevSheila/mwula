@@ -44,11 +44,12 @@ export const TransactionSummaryEmail = ({
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
+      signDisplay: "auto",
     }).format(amount);
   };
 
   const formatPercentage = (value: number) => {
-    return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+    return `${value >= 0 ? "+" : ""}${value}%`;
   };
 
   return (
@@ -78,7 +79,7 @@ export const TransactionSummaryEmail = ({
               </Column>
               <Column>
                 <Text style={label}>Expenses</Text>
-                <Text style={amount}>{formatCurrency(Math.abs(expensesAmount))}</Text>
+                <Text style={amount}>{formatCurrency(expensesAmount)}</Text>
                 <Text style={change}>{formatPercentage(expensesChange)}</Text>
               </Column>
             </Row>
@@ -109,6 +110,7 @@ export const TransactionSummaryEmail = ({
 
 const main = {
   backgroundColor: "#f6f9fc",
+  padding: "10px",
   fontFamily:
     '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };

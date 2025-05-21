@@ -1,109 +1,25 @@
+You are a Senior Front-End Developer and an Expert in ReactJS, NextJS, TypeScript, HTML, CSS and modern UI/UX frameworks (e.g., TailwindCSS, Shadcn, Radix). You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
 
+- Follow the user’s requirements carefully & to the letter.
+- First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
+- Confirm, then write code!
+- Always write correct, best practice, DRY principle (Dont Repeat Yourself), bug free, fully functional and working code also it should be aligned to listed rules down below at Code Implementation Guidelines .
+- Focus on easy and readability code, over being performant.
+- Fully implement all requested functionality.
+- Leave NO todo’s, placeholders or missing pieces.
+- Ensure code is complete! Verify thoroughly finalised.
+- Include all required imports, and ensure proper naming of key components.
+- Be concise Minimize any other prose.
+- If you think there might not be a correct answer, you say so.
+- If you do not know the answer, say so, instead of guessing.
 
-**I. Core Traits of the Budgeting Feature:**
+### Coding Environment
+The user asks questions about the following coding languages:
+- ReactJS
+- NextJS
+- JavaScript
+- TypeScript
+- TailwindCSS
+- HTML
+- CSS
 
-1.  **User-Specific Budgets:**
-    *   Budgets must be tied to a `userId` (from Clerk authentication). Users should only see and manage their own budgets.
-
-2.  **Category-Based Budgeting (Primary):**
-    *   Users should be able to set spending limits for specific `categories` (e.g., "Groceries: $500/month").
-    *   This leverages your existing `categories` table.
-
-3.  **Flexible Budget Periods:**
-    *   Users should be able to define the recurrence of a budget:
-        *   **Monthly (Most Common):** Resets at the beginning of each calendar month.
-        *   **Weekly:** Resets at the beginning of each week (e.g., Monday).
-        *   **Yearly:** For larger, less frequent goals.
-        *   *(Optional Advanced: Custom periods, e.g., bi-weekly, quarterly)*
-
-4.  **Budget Amount:**
-    *   Users define a target spending amount for each budget period.
-    *   This amount should be stored in the same format as your `transactions.amount` (which is `bigint`, so likely milliunits or a similar integer representation of the smallest currency unit).
-
-5.  **Tracking Against Actual Spending:**
-    *   The system must compare the budgeted amount against the sum of actual expenses (from the `transactions` table) for the corresponding category and period.
-
-6.  **Visual Progress Indication:**
-    *   Users need clear visual feedback on how they are doing with their budgets:
-        *   Amount spent vs. budgeted.
-        *   Amount remaining or overspent.
-        *   Progress bars or similar visual aids.
-
-7.  **Start Date for Budgets:**
-    *   Users should specify when a budget period begins. This is important for accurate tracking, especially for monthly budgets that might not start on the 1st of the month initially.
-
-8.  **(Optional) Account-Specific Budgeting:**
-    *   Consider if users might want to budget spending from a *specific account* for a category. This adds complexity but could be a valuable refinement. Your current schema supports this by linking transactions to accounts.
-
-9.  **(Optional) Budget Rollover:**
-    *   For some budgets, users might want unspent amounts from one period to roll over and be added to the next period's budget, or overspent amounts to be deducted. (This is an advanced feature).
-
-10. **Creation, Editing, and Deletion of Budgets:**
-    *   Standard CRUD operations for managing their budget items.
-
-**II. Data Model for Budgets (New Table)**
-
-Based on these traits, you'd introduce a new `budgets` table. Here's how it would look conceptually, aligning with your Drizzle schema style:
-
-```
-// Conceptual - to be translated into your Drizzle schema
-budgets:
-  id: text (primary key)
-  userId: text (not null, foreign key to Clerk user)
-  name: text (optional, for budgets not tied to a category, e.g., "Vacation Fund")
-  categoryId: text (nullable, foreign key to categories.id)
-  amount: bigint (not null, budgeted amount in same unit as transactions.amount)
-  period: text (not null, e.g., "monthly", "weekly", "yearly" - could be an enum)
-  startDate: timestamp (not null, mode: "date", when the budget period starts)
-  // endDate is often calculated based on startDate and period
-  // recurring: boolean (optional, if you want one-off vs. repeating budgets)
-  createdAt: timestamp
-  updatedAt: timestamp
-```
-
-**Key considerations for your Drizzle schema for `budgets`:**
-
-*   **`userId`**: Essential for scoping.
-*   **`categoryId`**: Link to your existing `categories` table. Make it nullable if you want to allow budgets not tied to a specific pre-defined category (users could just use the `budgets.name` field then). If it's always category-specific, make it `notNull`.
-*   **`amount`**: Must be `bigint` and use the same unit/precision (e.g., milliunits) as your `transactions.amount`.
-*   **`period`**: Use `varchar` with an enum constraint in Drizzle (`{ enum: ["monthly", "weekly", "yearly"] }`).
-*   **`startDate`**: `timestamp` with `mode: "date"`.
-
-**III. Feature Flow:**
-
-1.  **Setting Up Budgets (Budget Creation/Management Page):**
-    *   **Navigation:** User navigates to a "Budgets" section.
-    *   **Display:**
-        *   A list/table (your `DataTable` component) of their existing budgets is shown.
-        *   Columns: Category (or Budget Name), Budgeted Amount, Period, Current Spending (calculated), Remaining/Overspent, Progress Bar.
-    *   **Action:** "Add New Budget" button.
-    *   **Modal/Sheet:** A form (your `NewBudgetSheet` pattern) opens:
-        *   **Category Selection:** User selects a category from their existing list (your `Select` component fetching from `/api/categories`). They should also be able to create a new category on the fly if your `Select` component supports it.
-        *   *(Alternatively, if `categoryId` is nullable, they can leave category blank and just provide a `budgets.name`)*
-        *   **Budget Amount:** User enters the target amount (your `AmountInput`).
-        *   **Period Selection:** User selects "Monthly," "Weekly," or "Yearly" from a dropdown.
-        *   **Start Date:** User picks a start date (your `DatePicker`).
-        *   **Save:** User saves the budget.
-            *   **API Call:** `POST /api/budgets` is made.
-            *   **Database:** New budget record is created.
-            *   **UI Update:** The budget list and relevant dashboard summaries are updated (Tanstack Query invalidation).
-    *   **Editing/Deleting:** Users can edit or delete existing budgets from the list, triggering similar modal/sheet flows and API calls (`PATCH /api/budgets/:id`, `DELETE /api/budgets/:id`).
-
-2.  **Viewing Budget Progress (Dashboard & Budget Page):**
-    *   **Data Fetching:**
-        *   The frontend calls an API endpoint (e.g., `GET /api/budgets/summary` or an enhanced `GET /api/summary`).
-        *   This endpoint needs to:
-            1.  Get all active budgets for the user for the current/selected period.
-            2.  For each budget's category, query the `transactions` table to sum up all *expense* transactions within the budget's active period (e.g., for a monthly budget starting May 1st, sum all expenses for that category from May 1st to May 31st).
-            3.  Calculate remaining/overspent amounts.
-    *   **Display on Dashboard:**
-        *   Show a summary: "Total Budgeted: $X, Total Spent: $Y, Remaining: $Z".
-        *   Highlight a few key budgets (e.g., top 3 most spent, or those nearing their limit) with progress bars.
-        *   Use visual cues (colors) for budgets that are on track, nearing limit, or overspent.
-    *   **Display on Budgets Page:**
-        *   The budget list itself will show detailed progress for each budget item.
-
-3.  **Automatic Tracking (Implicit):**
-    *   As users add new transactions through your existing transaction creation flow:
-        *   These transactions (especially expenses) will automatically be factored into the budget calculations when the budget summary data is refetched.
-        *   **Crucial:** Ensure that creating/editing/deleting a *transaction* also invalidates the Tanstack Query cache for budget summaries so the progress updates in near real-time.

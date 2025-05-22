@@ -92,9 +92,8 @@ const NavContent = () => {
                 <Icon className={cn(
                   "h-4 w-4",
                   isActive
-                    ? "text-white "
-                    : "text-gray-500 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-700 dark:text-gray-300"
-
+                    ? "text-white"
+                    : "text-gray-500 group-hover:text-[#0004E8] dark:group-hover:text-white"
                 )} />
                 <span className="ms-3">{route.label}</span>
 
@@ -121,7 +120,7 @@ const NavContent = () => {
         </p>
       </div>
 
-      <div className="mt-auto border-t p-4">
+      <div className="mt-auto border-t p-2">
         <div className="flex items-center gap-x-4">
           <UserButton afterSignOutUrl="/" />
           <ThemeToggle />

@@ -5,6 +5,7 @@ import "./globals.css";
 import QueryProvider from "@/providers/query-provider";
 import { SheetProvider } from "@/providers/sheet-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,15 +21,22 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
-          <QueryProvider>
-            <SheetProvider />
-            <Toaster position="top-right" />
-            {children}
-          </QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <QueryProvider>
+              <SheetProvider />
+              <Toaster position="top-right" />
+              {children}
+            </QueryProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>
-      );
-};
+  );
+}

@@ -3,11 +3,11 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-
 import { Filters } from "./filters";
 import { HeaderLogo } from "./header-logo";
 import { Navigation } from "./navigation";
 import { WelcomeMsg } from "./welcome-msg";
+import { ThemeToggle } from "./theme-toggle";
 
 export const Header = () => {
   return (
@@ -19,7 +19,8 @@ export const Header = () => {
             <Navigation />
           </div>
 
-          <div className="flex items-center gap-x-2">
+          <div className="flex items-center gap-x-4">
+            <ThemeToggle />
             <ClerkLoaded>
               <UserButton afterSignOutUrl="/" />
             </ClerkLoaded>
@@ -27,8 +28,6 @@ export const Header = () => {
             <ClerkLoading>
               <Loader2 className="size-8 animate-spin text-slate-400" />
             </ClerkLoading>
-
-
           </div>
         </div>
 

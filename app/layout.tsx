@@ -6,6 +6,7 @@ import QueryProvider from "@/providers/query-provider";
 import { SheetProvider } from "@/providers/sheet-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
+import {SideNav} from "@/components/side-nav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,9 +31,14 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <QueryProvider>
+              <div className="flex min-h-screen">
+                <SideNav />
+                <main className="flex-1 lg:pl-64">
+                  {children}
+                </main>
+              </div>
               <SheetProvider />
               <Toaster position="top-right" />
-              {children}
             </QueryProvider>
           </ThemeProvider>
         </body>

@@ -82,7 +82,7 @@ export const DataGrid = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-4">
-        <Select
+        {/* <Select
           value={selectedAccount}
           onValueChange={(value) => setSelectedAccount(value)}
         >
@@ -97,13 +97,16 @@ export const DataGrid = () => {
               </SelectItem>
             ))}
           </SelectContent>
-        </Select>
+        </Select> */}
 
         <Select
           value={selectedCurrency}
           onValueChange={(value) => setSelectedCurrency(value)}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger
+                 className="h-9 w-full rounded-md focus:ring-transparent focus:ring-offset-0 lg:w-auto"
+
+           >
             <SelectValue placeholder="Display Currency" />
           </SelectTrigger>
           <SelectContent>

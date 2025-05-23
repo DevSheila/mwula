@@ -11,7 +11,7 @@ import {SideNav} from "@/components/side-nav";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Vuno",
+  title: "Mwula",
   description: "Finance Tracker",
 };
 

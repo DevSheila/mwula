@@ -64,10 +64,10 @@ const NavContent = () => {
 
   return (
     <>
-      <div className="flex h-14 items-center border-b px-4">
+      <div className="flex h-14 items-center  px-4">
         <Link href="/" className="flex items-center">
           <Logo className="text-[#0004E8] dark:text-white" size={28} />
-          <span className="ml-2 text-xl font-semibold text-[#0004E8] dark:text-white">Vuno</span>
+          <span className="ml-2 text-xl font-semibold text-[#0004E8] dark:text-white">Mwula</span>
         </Link>
       </div>
 
@@ -84,7 +84,7 @@ const NavContent = () => {
                 className={cn(
                   "group flex items-center gap-x-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-blue-700 text-white dark:bg-blue-700"
+                    ? "bg-[#0004E8]/10 text-[#0004E8] dark:bg-[#0004E8]/20 dark:text-white"
                     : "text-muted-foreground hover:bg-[#0004E8]/10 hover:text-[#0004E8] dark:hover:bg-[#0004E8]/20 dark:hover:text-white"
                 )}
               >
@@ -92,7 +92,7 @@ const NavContent = () => {
                 <Icon className={cn(
                   "h-4 w-4",
                   isActive
-                    ? "text-white"
+                    ? "text-[#0004E8]"
                     : "text-gray-500 group-hover:text-[#0004E8] dark:group-hover:text-white"
                 )} />
                 <span className="ms-3">{route.label}</span>
@@ -111,11 +111,11 @@ const NavContent = () => {
           backgroundPosition: 'center'
         }}
       >
-        <Button className="rounded-xl mb-3 w-full bg-blue-700 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600
+        <Button className="rounded-xl mb-3 w-full bg-blue-700 text-white text-xs font-medium hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600
         ">
           <a href="#">Upgrade to Pro</a>
         </Button>
-        <p className="text-sm dark:text-gray-800 ">
+        <p className="text-xs font-medium dark:text-gray-800 ">
           Unlock exclusive tools and advanced  features.
         </p>
       </div>
@@ -137,7 +137,7 @@ export const SideNav = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center border-b bg-background px-4 lg:hidden">
+        <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center mb-4 bg-background px-4 lg:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button
@@ -156,7 +156,7 @@ export const SideNav = () => {
 
           <Link href="/" className="flex items-center">
             <Logo className="text-[#0004E8] dark:text-white" size={24} />
-            <span className="ml-2 text-lg font-semibold text-[#0004E8] dark:text-white">Vuno</span>
+            <span className="ml-2 text-lg font-semibold text-[#0004E8] dark:text-white">Mwula</span>
           </Link>
         </div>
         <div className="h-14" /> {/* Spacer for fixed header */}

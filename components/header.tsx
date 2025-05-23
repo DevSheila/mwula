@@ -6,7 +6,7 @@ import { WelcomeMsg } from "./welcome-msg";
 
 export const Header = () => {
   return (
-    <header className="bg-[#0004E8] px-4 py-6 lg:px-8">
+    <header className="px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-screen-2xl">
         <div className="mb-4">
           <WelcomeMsg />

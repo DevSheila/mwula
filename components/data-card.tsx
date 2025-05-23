@@ -96,7 +96,7 @@ export const DataCard = ({
     <Card className="border-none drop-shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-x-4">
         <div className="space-y-2">
-          <CardTitle className="line-clamp-1 text-2xl">{title}</CardTitle>
+          <CardTitle className="line-clamp-1 text-md">{title}</CardTitle>
 
           <CardDescription className="line-clamp-1">
             {dateRange}
@@ -112,7 +112,7 @@ export const DataCard = ({
         {isConverting ? (
           <Skeleton className="mb-2 h-8 w-32" />
         ) : (
-          <h1 className="mb-2 line-clamp-1 break-all text-2xl font-bold">
+          <h1 className="mb-2 line-clamp-1 break-all text-md font-bold">
             <CountUp
               preserveValue
               start={0}

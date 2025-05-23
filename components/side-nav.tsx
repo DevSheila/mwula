@@ -84,7 +84,7 @@ const NavContent = () => {
                 className={cn(
                   "group flex items-center gap-x-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-[#0004E8] text-white dark:bg-[#0004E8]/90"
+                    ? "bg-blue-700 text-white dark:bg-blue-700"
                     : "text-muted-foreground hover:bg-[#0004E8]/10 hover:text-[#0004E8] dark:hover:bg-[#0004E8]/20 dark:hover:text-white"
                 )}
               >

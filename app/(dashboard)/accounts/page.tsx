@@ -53,12 +53,14 @@ const AccountsPage = () => {
     return (
         <div className="w-full px-6 py-6 mx-auto">
             <div className="flex flex-wrap -mx-3">
-                <WalletPanel
-                    accounts={accounts}
-                    onAddCard={newAccount.onOpen}
-                />
+                <div className="max-w-full lg:w-2/5 lg:flex-none">
+                    <WalletPanel
+                        accounts={accounts}
+                        onAddCard={newAccount.onOpen}
+                    />
+                </div>
 
-                <div className="w-full max-w-full px-3 lg:w-2/3 lg:flex-none">
+                <div className="w-full max-w-full px-3 lg:w-3/5 lg:flex-none">
                     <PaymentsPanel accounts={accounts} />
 
                 </div>

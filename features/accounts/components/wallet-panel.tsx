@@ -81,16 +81,38 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
             </ScrollArea>
 
             {/* Total Balance Card */}
-            <Card className="border-none bg-white/50 backdrop-blur-sm mb-4">
-                <CardContent className="p-6">
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-sm text-muted-foreground">Total Balance</p>
-                            <h2 className="text-lg font-bold">{formatCurrency(totalBalance)}</h2>
+           <Card className="border-none bg-white/50 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Your Balance</p>
+                                <h2 className="text-2xl font-bold">{formatCurrency(totalBalance)}</h2>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-emerald-600">+23.65%</p>
+                                    <p className="text-xs text-muted-foreground">Increase</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-rose-600">-10.40%</p>
+                                    <p className="text-xs text-muted-foreground">Decrease</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm text-muted-foreground">Currency</p>
+                                    <p className="text-sm font-medium">USD / US Dollar</p>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm text-muted-foreground">Status</p>
+                                    <p className="text-sm font-medium">Active</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
 
             <Button
                 onClick={onAddCard}

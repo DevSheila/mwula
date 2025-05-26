@@ -1,64 +1,69 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/data-table";
+import { Input } from "@/components/ui/input";
 import { useNewAccount } from "@/features/accounts/hooks/use-new-accounts";
 import { NewAccountSheet } from "@/features/accounts/components/new-account-sheet";
 import { EditAccountSheet } from "@/features/accounts/components/edit-account-sheet";
 import { useGetAccounts } from "@/features/accounts/api/use-get-accounts";
-import { useBulkDeleteAccounts } from "@/features/accounts/api/use-bulk-delete-accounts";
-import { columns } from "./columns";
+import { WalletPanel } from "@/features/accounts/components/wallet-panel";
+import { PaymentsPanel } from "@/features/accounts/components/payments-panel";
 
 const AccountsPage = () => {
     const newAccount = useNewAccount();
-    const deleteAccounts = useBulkDeleteAccounts();
     const accountsQuery = useGetAccounts();
     const accounts = accountsQuery.data || [];
 
-    const isDisabled = accountsQuery.isLoading || deleteAccounts.isPending;
-
     if (accountsQuery.isLoading) {
         return (
-            <div className="mx-auto -mt-6 w-full max-w-screen-2xl pb-10">
-                <Card className="border-none drop-shadow-sm">
-                    <CardHeader>
-                        <Skeleton className="h-8 w-48" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex h-[500px] w-full items-center justify-center">
-                            <Loader2 className="size-6 animate-spin text-slate-300" />
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="mx-auto w-full max-w-screen-2xl p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-4">
+                        <Card className="border-none drop-shadow-sm">
+                            <CardHeader>
+                                <Skeleton className="h-8 w-48" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex h-[400px] w-full items-center justify-center">
+                                    <Loader2 className="size-6 animate-spin text-slate-300" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="lg:col-span-8">
+                        <Card className="border-none drop-shadow-sm">
+                            <CardHeader>
+                                <Skeleton className="h-8 w-48" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex h-[400px] w-full items-center justify-center">
+                                    <Loader2 className="size-6 animate-spin text-slate-300" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="mx-auto -mt-6 w-full max-w-screen-2xl pb-10">
-            <Card className="border-none drop-shadow-sm">
-                <CardHeader className="gap-y-2 lg:flex-row lg:items-center lg:justify-between">
-                    <CardTitle className="line-clamp-1 text-xl">Accounts</CardTitle>
-                    <Button size="sm" onClick={newAccount.onOpen}>
-                        <Plus className="mr-2 size-4" /> Add new
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <DataTable
-                        filterKey="name"
-                        columns={columns}
-                        data={accounts}
-                        onDelete={(rows) => {
-                            const ids = rows.map((row) => row.original.id);
-                            deleteAccounts.mutate({ ids });
-                        }}
-                        disabled={isDisabled}
-                    />
-                </CardContent>
-            </Card>
+        <div className="w-full px-6 py-6 mx-auto">
+            <div className="flex flex-wrap -mx-3">
+                <WalletPanel
+                    accounts={accounts}
+                    onAddCard={newAccount.onOpen}
+                />
+
+                <div className="w-full max-w-full px-3 lg:w-2/3 lg:flex-none">
+                    <PaymentsPanel accounts={accounts} />
+
+                </div>
+            </div>
+
             <NewAccountSheet />
             <EditAccountSheet />
         </div>

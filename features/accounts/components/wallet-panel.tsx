@@ -27,32 +27,36 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
         <div >
             {/* Account Cards */}
             <ScrollArea className="whitespace-nowrap ">
-                <div className="flex flex-nowrap gap-4 px-3">
+            <div className="flex flex-nowrap gap-4 "> 
+               
                     {accounts.map((account) => (
                         <div
                             key={account.id}
-                            className="w-72  mb-4"
+                            className="w-72 mb-4"
                         >
-                            <div className="relative flex flex-col min-w-0 break-words bg-transparent border-0 border-transparent border-solid  rounded-2xl bg-clip-border">
+                            <div className="relative flex flex-col min-w-0 break-words bg-transparent border-0 border-transparent border-solid bg-clip-border">
                                 <div
                                     className="relative overflow-hidden rounded-md"
                                     style={{
                                         backgroundImage: "url('/curved14.jpg')"
                                     }}
                                 >
-                                    <span className="absolute top-0 left-0 w-full h-full bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
+                                    <span className="absolute top-0 left-0 w-full  bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
                                     <div className="relative z-10 flex-auto p-4">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-white font-semibold">
-                                                {account.institutionName}
-                                            </h4>
-                                            <p className="text-white text-sm opacity-80">
-                                                {account.currency}
-                                            </p>
+                                        <div className="my-">
+
+                                            <div className="flex justify-between items-center">
+                                                <h4 className="text-white font-semibold">
+                                                    {account.institutionName}
+                                                </h4>
+                                                <p className="text-white text-sm opacity-80">
+                                                    {account.currency}
+                                                </p>
+                                            </div>
+                                            <h5 className="pb-2 mt-6 mb-12 text-white text-sm">
+                                                {account.accountNumber.replace(/(\d{4})/g, '$1 ').trim()}
+                                            </h5>
                                         </div>
-                                        <h5 className="pb-2 mt-6 mb-12 text-white text-sm">
-                                            {account.accountNumber.replace(/(\d{4})/g, '$1 ').trim()}
-                                        </h5>
                                         <div className="flex justify-between items-end">
                                             <div>
                                                 <p className="mb-0 leading-normal text-white text-sm opacity-80">
@@ -81,38 +85,38 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
             </ScrollArea>
 
             {/* Total Balance Card */}
-           <Card className="border-none bg-white/50 backdrop-blur-sm">
-                    <CardContent className="p-6">
-                        <div className="space-y-4">
+            <Card className="border-none bg-white/50 backdrop-blur-sm">
+                <CardContent className="p-6">
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Your Balance</p>
+                            <h2 className="text-md font-bold">{formatCurrency(totalBalance)}</h2>
+                        </div>
+
+                        <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Your Balance</p>
-                                <h2 className="text-2xl font-bold">{formatCurrency(totalBalance)}</h2>
+                                <p className="text-sm font-medium text-emerald-600">+23.65%</p>
+                                <p className="text-xs text-muted-foreground">Increase</p>
                             </div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-emerald-600">+23.65%</p>
-                                    <p className="text-xs text-muted-foreground">Increase</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-rose-600">-10.40%</p>
-                                    <p className="text-xs text-muted-foreground">Decrease</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-muted-foreground">Currency</p>
-                                    <p className="text-sm font-medium">USD / US Dollar</p>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-muted-foreground">Status</p>
-                                    <p className="text-sm font-medium">Active</p>
-                                </div>
+                            <div>
+                                <p className="text-sm font-medium text-rose-600">-10.40%</p>
+                                <p className="text-xs text-muted-foreground">Decrease</p>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Currency</p>
+                                <p className="text-sm font-medium">USD / US Dollar</p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Status</p>
+                                <p className="text-sm font-medium">Active</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Button
                 onClick={onAddCard}

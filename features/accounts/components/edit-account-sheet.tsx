@@ -18,6 +18,9 @@ import { Loader2 } from "lucide-react";
 
 const formSchema = insertAccountSchema.pick({
     name: true,
+    institutionName: true,
+    accountNumber: true,
+    currency: true,
 });
 
 type FormValues = z.input<typeof formSchema>;
@@ -29,7 +32,6 @@ export const EditAccountSheet = () => {
         "Are you sure?",
         "You are about to delete this account."
     );
-
 
     const accountQuery = useGetAccount(id);
     const editMutation = useEditAccount(id);
@@ -62,9 +64,15 @@ export const EditAccountSheet = () => {
     };
 
     const defaultValues = accountQuery.data ? {
-        name: accountQuery.data.name
+        name: accountQuery.data.name,
+        institutionName: accountQuery.data.institutionName,
+        accountNumber: accountQuery.data.accountNumber || "",
+        currency: accountQuery.data.currency,
     } : {
         name: "",
+        institutionName: "",
+        accountNumber: "",
+        currency: "KES",
     }
 
     return (
@@ -87,16 +95,16 @@ export const EditAccountSheet = () => {
                             </div>
                         ) : (
                             <AccountForm
-                        id={id}
-                        onSubmit={onSubmit} 
-                        disabled={isPending}
-                        defaultValues={defaultValues}
-                        onDelete={onDelete}
-                    />
+                                id={id}
+                                onSubmit={onSubmit} 
+                                disabled={isPending}
+                                defaultValues={defaultValues}
+                                onDelete={onDelete}
+                            />
                         )
                     }
                 </SheetContent>
-                </Sheet>
-            </>
+            </Sheet>
+        </>
     );
 };

@@ -6,10 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { NavButton } from "./nav-button";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { useAuth } from "@clerk/nextjs";
 import {
     Sheet,
     SheetContent,
-    SheetTrigger,
+    SheetTrigger, 
  } from "@/components/ui/sheet";
 
 const routes = [
@@ -30,6 +31,10 @@ const routes = [
         label: "Categories",
     },
     {
+        href: "/budgets",
+        label: "Budgets",
+    },
+    {
         href: "/settings",
         label: "Settings",
     },
@@ -37,15 +42,19 @@ const routes = [
 
 export const Navigation = () => {
     const [isOpen, setIsOpen] = useState(false);
-
     const router = useRouter();
     const pathname = usePathname();
     const isMobile = useMedia("(max-width: 1024px)", false);
+    const { isSignedIn } = useAuth();
 
     const onClick = (href: string) => {
         router.push(href);
         setIsOpen(false);
     };
+
+    if (!isSignedIn) {
+        return null;
+    }
 
     if (isMobile) {
         return (

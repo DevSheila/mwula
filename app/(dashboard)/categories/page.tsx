@@ -14,12 +14,22 @@ import { DataTable } from "@/components/data-table";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBulkDeleteCategories } from "@/features/categories/api/use-bulk-delete-categories";
+import { TypeFilter } from "./type-filter";
+import { useState } from "react";
 
 const CategoriesPage = () => {
     const newCategory = useNewCategory();
     const deleteCategories = useBulkDeleteCategories();
     const categoriesQuery = useGetCategories();
+    const [typeFilter, setTypeFilter] = useState("all");
+
     const categories = categoriesQuery.data || [];
+    const filteredCategories = categories.filter(category => {
+        if (typeFilter === "all") return true;
+        if (typeFilter === "user") return category.isUniversal === 0;
+        if (typeFilter === "universal") return category.isUniversal === 1;
+        return true;
+    });
 
     const isDisabled =
         categoriesQuery.isLoading ||
@@ -27,7 +37,7 @@ const CategoriesPage = () => {
 
     if (categoriesQuery.isLoading) {
         return (
-            <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
+            <div className="mx-auto -mt-6 w-full max-w-screen-2xl pb-10">
                 <Card className="border-none drop-shadow-sm">
                     <CardHeader>
                         <Skeleton className="h-8 w-48" />
@@ -43,11 +53,11 @@ const CategoriesPage = () => {
     }
 
     return (
-        <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
+        <div className="mx-auto -mt-6 w-full max-w-screen-2xl pb-10">
             <Card className="border-none drop-shadow-sm">
                 <CardHeader className="gap-y-2 lg:flex-row lg:items-center lg:justify-between">
                     <CardTitle className="text-xl line-clamp-1">
-                        Categories Page
+                        Categories 
                     </CardTitle>
                     <Button onClick={newCategory.onOpen} size="sm">
                         <Plus className="size-4 mr-2"/>
@@ -55,13 +65,20 @@ const CategoriesPage = () => {
                     </Button>
                 </CardHeader>
                 <CardContent>
+                    <div className="mb-4">
+                        <TypeFilter value={typeFilter} onChange={setTypeFilter} />
+                    </div>
                     <DataTable
                         filterKey="name"
                         columns={columns}
-                        data={categories}
+                        data={filteredCategories}
                         onDelete={(row) => {
-                            const ids = row.map((r) => r.original.id);
-                            deleteCategories.mutate({ ids });
+                            // Filter out universal categories before deletion
+                            const userCategories = row.filter(r => !r.original.isUniversal);
+                            if (userCategories.length > 0) {
+                                const ids = userCategories.map((r) => r.original.id);
+                                deleteCategories.mutate({ ids });
+                            }
                         }}
                         disabled={isDisabled}
                     />

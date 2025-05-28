@@ -14,6 +14,9 @@ import {
 
 const formSchema = insertAccountSchema.pick({
     name: true,
+    institutionName: true,
+    accountNumber: true,
+    currency: true,
 });
 
 type FormValues = z.input<typeof formSchema>;
@@ -47,6 +50,9 @@ export const NewAccountSheet = () => {
                     disabled={mutation.isPending}
                     defaultValues={{
                         name: "",
+                        institutionName: "",
+                        accountNumber: "",
+                        currency: "KES",
                     }}
                 />
             </SheetContent>

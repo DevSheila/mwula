@@ -27,7 +27,7 @@ export const DateFilter = () => {
   const to = searchParams.get("to") || "";
 
   const defaultTo = new Date();
-  const defaultFrom = subDays(defaultTo, 30);
+  const defaultFrom = subDays(defaultTo, 364);
 
   const paramState = {
     from: from ? new Date(from) : defaultFrom,
@@ -66,7 +66,7 @@ export const DateFilter = () => {
           disabled={false}
           size="sm"
           variant="outline"
-          className="h-9 w-full rounded-md border-none bg-white/10 px-3 font-normal text-white outline-none transition hover:bg-white/30 hover:text-white focus:bg-white/30 focus:ring-transparent focus:ring-offset-0 lg:w-auto"
+          className="h-9 w-full rounded-md focus:ring-transparent focus:ring-offset-0 lg:w-auto"
         >
           <span>{formatDateRange(paramState)}</span>
 

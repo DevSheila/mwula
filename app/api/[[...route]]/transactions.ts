@@ -35,7 +35,7 @@ const app = new Hono()
       }
 
       const defaultTo = new Date();
-      const defaultFrom = subDays(defaultTo, 30);
+      const defaultFrom = subDays(defaultTo, 364);
 
       const startDate = from
         ? parse(from, "yyyy-MM-dd", new Date())
@@ -48,11 +48,15 @@ const app = new Hono()
           date: transactions.date,
           category: categories.name,
           categoryId: transactions.categoryId,
+          isUniversal: categories.isUniversal,
           payee: transactions.payee,
           amount: transactions.amount,
           notes: transactions.notes,
           account: accounts.name,
           accountId: transactions.accountId,
+          currency: accounts.currency,
+          institutionName: accounts.institutionName,
+          accountNumber: accounts.accountNumber,
         })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))

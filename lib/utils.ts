@@ -1,24 +1,34 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { eachDayOfInterval, format, isSameDay, subDays } from "date-fns";
+import currencies from "./currencies";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getCurrencySymbol(currencyCode: string = "USD"): string {
+  const currency = currencies.find((c) => c.code === currencyCode);
+  return currency?.symbol || "$";
+}
+
 export function convertAmountFromMiliunits(amount: number) {
-  return Math.round(amount / 1000);
+  return Math.round(amount / 100);
 }
 
 export function convertAmountToMiliunits(amount: number) {
-  return Math.round(amount * 1000);
+  return Math.round(amount * 100);
 }
 
-export function formatCurrency(value: number) {
-  return Intl.NumberFormat("en-us", {
+export function formatCurrency(
+  value: number,
+  options: { currency?: string } = {}
+): string {
+  const { currency = "KES" } = options;
+  
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
+    currency: currency,
   }).format(value);
 }
 
@@ -69,7 +79,7 @@ type Period = {
 
 export function formatDateRange(period?: Period) {
   const defaultTo = new Date();
-  const defaultFrom = subDays(defaultTo, 30);
+  const defaultFrom = subDays(defaultTo, 364);
 
   if (!period?.from) {
     return `${format(defaultFrom, "LLL dd")} - ${format(

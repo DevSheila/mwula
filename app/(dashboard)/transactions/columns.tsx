@@ -13,7 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { AccountColumn } from "./account-column";
 import { CategoryColumn } from "./category-column";
 
-export type ResponseType = InferResponseType<typeof client.api.transactions.$get, 200>["data"][0];
+export type ResponseType = InferResponseType<typeof client.api.transactions.$get, 200>["data"][0] & {
+  institutionName: string;
+  accountNumber: string;
+};
 
 export const columns: ColumnDef<ResponseType>[] = [
   {
@@ -79,6 +82,7 @@ export const columns: ColumnDef<ResponseType>[] = [
           id={row.original.id}
           category={row.original.category}
           categoryId={row.original.categoryId}
+          isUniversal={row.original.isUniversal}
         />
       )
     }
@@ -112,12 +116,13 @@ export const columns: ColumnDef<ResponseType>[] = [
     },
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"));
+      const currency = row.original.currency;
       return (
         <Badge
           variant={amount < 0 ? "destructive" : "primary"}
           className="text-xs font-medium px-3.5 py-2.5"
         >
-          {formatCurrency(amount)}
+          {formatCurrency(amount, currency)}
         </Badge>
       )
     }
@@ -140,6 +145,8 @@ export const columns: ColumnDef<ResponseType>[] = [
         <AccountColumn
           account={row.original.account}
           accountId={row.original.accountId}
+          institutionName={row.original.institutionName}
+          accountNumber={row.original.accountNumber}
         />
       )
     }

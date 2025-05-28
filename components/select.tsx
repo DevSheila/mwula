@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import type { SingleValue } from "react-select";
+import type { MultiValue, SingleValue } from "react-select";
 import CreatableSelect from "react-select/creatable";
 
 type SelectProps = {
-  onChange: (value?: string) => void;
+  onChange: (value?: string | string[]) => void;
   onCreate?: (value: string) => void;
   options?: { label: string; value: string }[];
-  value?: string | null | undefined;
+  value?: string | string[] | null | undefined;
   disabled?: boolean;
   placeholder?: string;
+  isMulti?: boolean;
 };
 
 export const Select = ({
@@ -20,14 +21,26 @@ export const Select = ({
   options = [],
   disabled,
   placeholder,
+  isMulti = false,
 }: SelectProps) => {
-  const onSelect = (option: SingleValue<{ label: string; value: string }>) => {
-    onChange(option?.value);
+  const onSelect = (
+    option: MultiValue<{ label: string; value: string }> | SingleValue<{ label: string; value: string }>
+  ) => {
+    if (isMulti) {
+      const multiOption = option as MultiValue<{ label: string; value: string }>;
+      onChange(multiOption.map((opt) => opt.value));
+    } else {
+      const singleOption = option as SingleValue<{ label: string; value: string }>;
+      onChange(singleOption?.value);
+    }
   };
 
   const formattedValue = useMemo(() => {
+    if (isMulti && Array.isArray(value)) {
+      return options.filter((option) => value.includes(option.value));
+    }
     return options.find((option) => option.value === value);
-  }, [options, value]);
+  }, [options, value, isMulti]);
 
   return (
     <CreatableSelect
@@ -47,6 +60,7 @@ export const Select = ({
       options={options}
       onCreateOption={onCreate}
       isDisabled={disabled}
+      isMulti={isMulti}
     />
   );
 };

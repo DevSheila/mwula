@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSelectAccount } from "@/features/accounts/hooks/use-select-account";
 import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-create-transactions";
+import { useGetCategories } from "@/features/categories/api/use-get-categories";
 
 type PDFUploadButtonProps = {
   onUpload?: (results: any) => void;
@@ -18,6 +19,7 @@ type GeminiResponse = {
     amount: number;
     type: string;
     notes?: string;
+    category: string;
   }>;
 };
 
@@ -25,6 +27,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
   const [isProcessing, setIsProcessing] = useState(false);
   const [AccountDialog, confirm] = useSelectAccount();
   const createTransactions = useBulkCreateTransactions();
+  const { data: categories = [] } = useGetCategories();
 
   const cleanJsonResponse = (text: string) => {
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -32,6 +35,15 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       return jsonMatch[1];
     }
     return text;
+  };
+
+  const convertAmount = (amount: number, type: string): number => {
+    // Convert the amount to a string with 2 decimal places
+    const amountStr = amount.toFixed(2);
+    // Remove the decimal point and convert back to number
+    const cents = parseInt(amountStr.replace('.', ''));
+    // Apply the sign based on transaction type
+    return type === "EXPENSE" ? -cents : cents;
   };
 
   const processPDFDocuments = async (files: FileList) => {
@@ -55,23 +67,43 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       });
 
       const fileData = await Promise.all(filePromises);
+
+      // Create a list of available categories for the AI
+      const availableCategories = categories.map(cat => ({
+        name: cat.name,
+        description: cat.description,
+        id: cat.id
+      })); 
       
-      const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction details. Return the results in JSON format with the following structure:
+      const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction and account details. Return the results in JSON format with the following structure:
       {
+        "accountInfo": {
+          "institutionName": "detected institution name or null",
+          "accountNumber": "detected account number or null",
+          "accountType": "detected account type or null (e.g. checking, savings, credit card, etc.)"
+        },
         "transactions": [
           {
             "date": "YYYY-MM-DD",
             "payee": "name of payer/payee",
-            "amount": total amount as is(e.g. 154.06 should be 154.06 , but 154 should be 154.00),
+            "amount": total amount as a number with exact precision (e.g., 17000.00 should be 17000.00, 56 should be 56.00),
             "type": "EXPENSE" or "INCOME",
-            "notes": "Include document type (statement/invoice), document number if available, and relevant details"
+            "notes": "Include document type (statement/invoice), document number if available, and relevant details",
+            "category": "name of the most appropriate category from the list below"
           }
         ]
       }
 
+      Available categories:
+      ${JSON.stringify(availableCategories, null, 2)}
+
       Guidelines:
+      - Extract any visible account information (name, institution, number, type) from headers, footers, or metadata
+      - For statements: extract account details from the statement header
       - For statements: extract each transaction with its corresponding payee
       - For invoices: payee is the billing entity
+      - Choose the most appropriate category from the provided list based on the transaction details
+      - IMPORTANT: Preserve exact amount values. Do not round or modify the amounts.
       
       Transaction Types:
       - EXPENSE: Money going out (debits, payments made, bills)
@@ -92,23 +124,41 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       const cleanedJson = cleanJsonResponse(text);
       console.log("Cleaned JSON:", cleanedJson);
       
-      const parsedData = JSON.parse(cleanedJson) as GeminiResponse;
+      const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
+        accountInfo: {
+          accountName: string | null;
+          institutionName: string | null;
+          accountNumber: string | null;
+          accountType: string | null;
+        };
+      };
 
-      // Get account selection from user
-      const accountId = await confirm();
+      // Get account selection from user with suggested account
+      const accountId = await confirm({
+        suggestedAccount: parsedData.accountInfo
+      });
+      
       if (!accountId) {
         toast.error("Please select an account to continue.");
         return;
       }
 
       // Transform the data
-      const transformedData = parsedData.transactions.map(transaction => ({
-        accountId: accountId as string,
-        amount: Math.round(transaction.amount * (transaction.type === "EXPENSE" ? -100 : 100)),
-        payee: transaction.payee,
-        date: new Date(transaction.date),
-        notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`
-      }));
+      const transformedData = parsedData.transactions.map(transaction => {
+        // Find the category ID based on the name
+        const category = categories.find(cat => 
+          cat.name.toLowerCase() === transaction.category.toLowerCase()
+        );
+
+        return {
+          accountId: accountId as string,
+          amount: convertAmount(transaction.amount, transaction.type),
+          payee: transaction.payee,
+          date: new Date(transaction.date),
+          notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`,
+          categoryId: category?.id // Include the category ID if found
+        };
+      });
 
       // Create the transactions
       createTransactions.mutate(transformedData, {

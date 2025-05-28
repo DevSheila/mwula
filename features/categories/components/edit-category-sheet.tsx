@@ -17,6 +17,8 @@ import { Loader2 } from "lucide-react";
 
 const formSchema = insertCategorySchema.pick({
   name: true,
+  description: true,
+  icon: true,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -48,9 +50,13 @@ export const EditCategorySheet = () => {
   const defaultValues = categoryQuery.data
     ? {
         name: categoryQuery.data.name,
+        description: categoryQuery.data.description || "",
+        icon: categoryQuery.data.icon || "more-horizontal",
       }
     : {
         name: "",
+        description: "",
+        icon: "more-horizontal",
       };
 
   const onDelete = async () => {

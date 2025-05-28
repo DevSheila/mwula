@@ -3,10 +3,11 @@
 import { InferResponseType } from "hono";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { client } from "@/lib/hono";
 import { Actions } from "./actions";
+import { iconMap } from "@/features/categories/lib/icons";
 
 export type ResponseType = InferResponseType<typeof client.api.categories.$get, 200>["data"][0];
 
@@ -48,7 +49,35 @@ export const columns: ColumnDef<ResponseType>[] = [
     }
   },
   {
+    accessorKey: "description",
+    header: "Description",
+  },
+  {
+    accessorKey: "icon",
+    header: "Icon",
+    cell: ({ row }) => {
+      const icon = row.original.icon;
+      const IconComponent = iconMap[icon];
+      
+      return (
+        <div className="flex items-center gap-2">
+          {IconComponent && <IconComponent className="h-4 w-4" />}
+          {/* <span className="text-sm text-muted-foreground">{icon}</span> */}
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: "isUniversal",
+    header: "Type",
+    cell: ({ row }) => (
+      <span>
+        {row.original.isUniversal ? "Universal" : "Yours"}
+      </span>
+    )
+  },
+  {
     id: "actions",
-    cell: ({ row }) => <Actions id={row.original.id} />
+    cell: ({ row }) => <Actions id={row.original.id} isUniversal={row.original.isUniversal} />
   }
-]
+];

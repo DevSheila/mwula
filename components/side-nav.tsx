@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./theme-toggle";
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Receipt,
@@ -133,11 +133,6 @@ const NavContent = () => {
 export const SideNav = () => {
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useMedia("(max-width: 1024px)", false);
-  const { isSignedIn } = useAuth();
-
-  if (!isSignedIn) {
-    return null;
-  }
 
   if (isMobile) {
     return (

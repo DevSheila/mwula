@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useSelectAccount } from "@/features/accounts/hooks/use-select-account";
 import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-create-transactions";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
+import { PDFPasswordDialog } from "./pdf-password-dialog";
+import { isPDFPasswordProtected, decryptPDF, convertPDFToBase64 } from "@/lib/pdf-utils";
 
 type PDFUploadButtonProps = {
   onUpload?: (results: any) => void;
@@ -23,11 +25,25 @@ type GeminiResponse = {
   }>;
 };
 
+type PasswordProtectedFile = {
+  file: File;
+  index: number;
+};
+
 export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [AccountDialog, confirm] = useSelectAccount();
   const createTransactions = useBulkCreateTransactions();
   const { data: categories = [] } = useGetCategories();
+  const [passwordDialog, setPasswordDialog] = useState<{
+    isOpen: boolean;
+    file: PasswordProtectedFile | null;
+    remainingFiles: File[];
+  }>({
+    isOpen: false,
+    file: null,
+    remainingFiles: [],
+  });
 
   const cleanJsonResponse = (text: string) => {
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -46,16 +62,64 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
     return type === "EXPENSE" ? -cents : cents;
   };
 
-  const processPDFDocuments = async (files: FileList) => {
+  const handlePasswordSubmit = async (password: string) => {
+    try {
+      if (!passwordDialog.file) return;
+
+      // Attempt to decrypt the PDF
+      const decryptedBuffer = await decryptPDF(passwordDialog.file.file, password);
+      
+      // Create a new File object with the decrypted content
+      const decryptedFile = new File([decryptedBuffer], passwordDialog.file.file.name, {
+        type: 'application/pdf'
+      });
+
+      // Replace the encrypted file with the decrypted one
+      const updatedFiles = [...passwordDialog.remainingFiles];
+      updatedFiles[passwordDialog.file.index] = decryptedFile;
+
+      // Close the password dialog
+      setPasswordDialog({ isOpen: false, file: null, remainingFiles: [] });
+      
+      // Continue processing with the decrypted file
+      await processPDFDocuments(updatedFiles);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Invalid password') {
+          toast.error('Invalid password. Please try again.');
+        } else {
+          toast.error('Failed to decrypt PDF. Please try again.');
+          console.error('Decryption error:', error);
+        }
+      }
+    }
+  };
+
+  const processPDFDocuments = async (files: File[]) => {
     try {
       setIsProcessing(true);
+      
+      // Check each PDF for password protection
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isEncrypted = await isPDFPasswordProtected(file);
+        
+        if (isEncrypted) {
+          setPasswordDialog({
+            isOpen: true,
+            file: { file, index: i },
+            remainingFiles: files,
+          });
+          return; // Stop processing and wait for password
+        }
+      }
       
       // Initialize Gemini AI
       const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       // Convert PDFs to base64
-      const filePromises = Array.from(files).map(async (file) => {
+      const filePromises = files.map(async (file) => {
         const buffer = await file.arrayBuffer();
         const base64 = Buffer.from(buffer).toString('base64');
         return {
@@ -191,7 +255,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       return;
     }
 
-    await processPDFDocuments(files);
+    await processPDFDocuments(Array.from(files));
     // Clear the input
     event.target.value = '';
   };
@@ -199,6 +263,12 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
   return (
     <>
       <AccountDialog />
+      <PDFPasswordDialog
+        isOpen={passwordDialog.isOpen}
+        onClose={() => setPasswordDialog({ isOpen: false, file: null, remainingFiles: [] })}
+        onSubmit={handlePasswordSubmit}
+        fileName={passwordDialog.file?.file.name || ""}
+      />
       <div>
         <input
           type="file"

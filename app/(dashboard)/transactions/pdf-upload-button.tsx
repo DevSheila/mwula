@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { useSelectAccount } from "@/features/accounts/hooks/use-select-account";
 import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-create-transactions";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
+import { isPdfPasswordProtected } from "@/lib/pdf-utils";
+import { extractPdfContent } from "@/lib/pdf-api";
+import { PdfPasswordDialog } from "@/components/pdf-password-dialog";
 
 type PDFUploadButtonProps = {
   onUpload?: (results: any) => void;
@@ -29,53 +32,46 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
   const createTransactions = useBulkCreateTransactions();
   const { data: categories = [] } = useGetCategories();
 
+  // State for password protected PDF handling
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
   const cleanJsonResponse = (text: string) => {
+    console.log('Raw Gemini response:', text);
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
+      console.log('Cleaned JSON from Gemini:', jsonMatch[1]);
       return jsonMatch[1];
     }
+    console.log('No JSON blocks found, using raw text:', text);
     return text;
   };
 
   const convertAmount = (amount: number, type: string): number => {
-    // Convert the amount to a string with 2 decimal places
     const amountStr = amount.toFixed(2);
-    // Remove the decimal point and convert back to number
     const cents = parseInt(amountStr.replace('.', ''));
-    // Apply the sign based on transaction type
     return type === "EXPENSE" ? -cents : cents;
   };
 
-  const processPDFDocuments = async (files: FileList) => {
+  const processWithGeminiAI = async (pdfContent: string) => {
     try {
-      setIsProcessing(true);
-      
-      // Initialize Gemini AI
+      console.log('PDF content being sent to Gemini:', pdfContent);
+
       const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      // Convert PDFs to base64
-      const filePromises = Array.from(files).map(async (file) => {
-        const buffer = await file.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        return {
-          inlineData: {
-            mimeType: file.type,
-            data: base64
-          }
-        };
-      });
-
-      const fileData = await Promise.all(filePromises);
-
-      // Create a list of available categories for the AI
       const availableCategories = categories.map(cat => ({
         name: cat.name,
         description: cat.description,
         id: cat.id
-      })); 
-      
-      const prompt = `Analyze these PDF financial documents (which may include bank statements, invoices, or other financial records) and extract transaction and account details. Return the results in JSON format with the following structure:
+      }));
+
+      console.log('Available categories for Gemini:', availableCategories);
+
+      const prompt = `Analyze this PDF financial document content and extract transaction and account details. The content is pre-extracted text from a financial document (which may be a bank statement, invoice, or other financial record).
+
+      Return the results in JSON format with the following structure:
       {
         "accountInfo": {
           "institutionName": "detected institution name or null",
@@ -97,86 +93,152 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       Available categories:
       ${JSON.stringify(availableCategories, null, 2)}
 
-      Guidelines:
-      - Extract any visible account information (name, institution, number, type) from headers, footers, or metadata
-      - For statements: extract account details from the statement header
-      - For statements: extract each transaction with its corresponding payee
-      - For invoices: payee is the billing entity
-      - Choose the most appropriate category from the provided list based on the transaction details
-      - IMPORTANT: Preserve exact amount values. Do not round or modify the amounts.
-      
-      Transaction Types:
-      - EXPENSE: Money going out (debits, payments made, bills)
-      - INCOME: Money coming in (credits, payments received, deposits)
-      
-      Please be thorough in the notes field to indicate the type of document processed.`;
-      
-      const result = await model.generateContent([
-        prompt,
-        ...fileData
-      ]);
+      PDF Content to analyze:
+      ${pdfContent}`;
+
+      console.log('Sending prompt to Gemini:', prompt);
+
+      const result = await model.generateContent([prompt]);
+      console.log('Raw Gemini result:', result);
 
       const response = await result.response;
       const text = response.text();
       
-      console.log("Raw text response:", text);
-      
-      const cleanedJson = cleanJsonResponse(text);
-      console.log("Cleaned JSON:", cleanedJson);
-      
-      const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
-        accountInfo: {
-          accountName: string | null;
-          institutionName: string | null;
-          accountNumber: string | null;
-          accountType: string | null;
-        };
-      };
+      console.log('Gemini response text:', text);
+      return text;
+    } catch (error) {
+      console.error('Error in Gemini processing:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      throw error;
+    }
+  };
 
-      // Get account selection from user with suggested account
-      const accountId = await confirm({
-        suggestedAccount: parsedData.accountInfo
-      });
-      
-      if (!accountId) {
-        toast.error("Please select an account to continue.");
-        return;
+  const processPDFDocuments = async (files: File[], password?: string) => {
+    try {
+      setIsProcessing(true);
+
+      // Process each file
+      for (const file of files) {
+        try {
+          console.log(`Processing file: ${file.name}`);
+          
+          // Extract content using FastAPI
+          console.log('Sending to FastAPI for extraction...');
+          const pdfContent = await extractPdfContent(file, password);
+          console.log('Content extracted from FastAPI:', pdfContent);
+          
+          // Process the extracted content with Gemini AI
+          console.log('Processing with Gemini AI...');
+          const geminiResponse = await processWithGeminiAI(pdfContent);
+          
+          // Parse and clean the response
+          const cleanedJson = cleanJsonResponse(geminiResponse);
+          
+          try {
+            const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
+              accountInfo: {
+                accountName: string | null;
+                institutionName: string | null;
+                accountNumber: string | null;
+                accountType: string | null;
+              };
+            };
+            console.log('Parsed data from Gemini:', parsedData);
+
+            // Get account selection from user
+            const accountId = await confirm({
+              suggestedAccount: parsedData.accountInfo
+            });
+            
+            if (!accountId) {
+              console.log('User cancelled account selection');
+              toast.error("Please select an account to continue.");
+              return;
+            }
+
+            console.log('Selected account ID:', accountId);
+
+            // Transform the data
+            const transformedData = parsedData.transactions.map(transaction => {
+              const category = categories.find(cat => 
+                cat.name.toLowerCase() === transaction.category.toLowerCase()
+              );
+
+              console.log('Processing transaction:', {
+                original: transaction,
+                matchedCategory: category
+              });
+
+              return {
+                accountId: accountId as string,
+                amount: convertAmount(transaction.amount, transaction.type),
+                payee: transaction.payee,
+                date: new Date(transaction.date),
+                notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`,
+                categoryId: category?.id
+              };
+            });
+
+            console.log('Transformed transactions:', transformedData);
+
+            // Create transactions
+            await createTransactions.mutateAsync(transformedData);
+            console.log(`Successfully processed ${file.name}`);
+            toast.success(`Successfully processed ${file.name}!`);
+          } catch (parseError) {
+            console.error('Error parsing Gemini response:', parseError);
+            console.error('Failed JSON:', cleanedJson);
+            throw new Error('Failed to parse Gemini response');
+          }
+        } catch (error) {
+          console.error(`Error processing file ${file.name}:`, error);
+          if (error instanceof Error) {
+            console.error('Error details:', {
+              message: error.message,
+              stack: error.stack
+            });
+          }
+          toast.error(`Failed to process ${file.name}. Please try again.`);
+        }
       }
 
-      // Transform the data
-      const transformedData = parsedData.transactions.map(transaction => {
-        // Find the category ID based on the name
-        const category = categories.find(cat => 
-          cat.name.toLowerCase() === transaction.category.toLowerCase()
-        );
-
-        return {
-          accountId: accountId as string,
-          amount: convertAmount(transaction.amount, transaction.type),
-          payee: transaction.payee,
-          date: new Date(transaction.date),
-          notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`,
-          categoryId: category?.id // Include the category ID if found
-        };
-      });
-
-      // Create the transactions
-      createTransactions.mutate(transformedData, {
-        onSuccess: () => {
-          toast.success(`Successfully processed ${files.length} PDF document(s)!`);
-          onClose();
-        },
-        onError: (error) => {
-          console.error('Error creating transactions:', error);
-          toast.error("Failed to create transactions. Please try again.");
-        }
-      });
-
+      onClose();
     } catch (error) {
-      console.error('Error processing PDF documents:', error);
+      console.error('Error in processPDFDocuments:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       toast.error("Failed to process PDF documents. Please try again.");
     } finally {
       setIsProcessing(false);
+      setCurrentFile(null);
+      setPendingFiles([]);
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!currentFile) return;
+    
+    try {
+      console.log('Processing password-protected file:', currentFile.name);
+      await processPDFDocuments([currentFile], password);
+    } catch (error) {
+      console.error('Error in password submission:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      throw error; // Re-throw to be handled by the dialog
     }
   };
 
@@ -191,7 +253,29 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       return;
     }
 
-    await processPDFDocuments(files);
+    // Convert FileList to array for easier handling
+    const fileArray = Array.from(files);
+    setPendingFiles(fileArray);
+
+    console.log('Files selected:', fileArray.map(f => f.name));
+
+    // Check each file for password protection
+    for (const file of fileArray) {
+      console.log(`Checking if ${file.name} is password protected...`);
+      const isProtected = await isPdfPasswordProtected(file);
+      console.log(`${file.name} password protected:`, isProtected);
+      
+      if (isProtected) {
+        setCurrentFile(file);
+        setPasswordDialogOpen(true);
+        return;
+      }
+    }
+
+    // If no password protected files, process normally
+    console.log('Processing files without password...');
+    await processPDFDocuments(fileArray);
+    
     // Clear the input
     event.target.value = '';
   };
@@ -199,6 +283,16 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
   return (
     <>
       <AccountDialog />
+      <PdfPasswordDialog
+        isOpen={passwordDialogOpen}
+        onClose={() => {
+          setPasswordDialogOpen(false);
+          setCurrentFile(null);
+          setPendingFiles([]);
+        }}
+        onSubmit={handlePasswordSubmit}
+        fileName={currentFile?.name || ""}
+      />
       <div>
         <input
           type="file"

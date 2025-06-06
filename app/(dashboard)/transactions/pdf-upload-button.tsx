@@ -6,24 +6,19 @@ import { toast } from "sonner";
 import { useSelectAccount } from "@/features/accounts/hooks/use-select-account";
 import { useBulkCreateTransactions } from "@/features/transactions/api/use-bulk-create-transactions";
 import { useGetCategories } from "@/features/categories/api/use-get-categories";
-import { isPdfPasswordProtected } from "@/lib/pdf-utils";
+import { isPdfPasswordProtected, splitContentIntoChunks, mergeTransactions } from "@/lib/pdf-utils";
 import { extractPdfContent } from "@/lib/pdf-api";
 import { PdfPasswordDialog } from "@/components/pdf-password-dialog";
+import type { Transaction, GeminiResponse } from "@/lib/pdf-utils";
 
 type PDFUploadButtonProps = {
   onUpload?: (results: any) => void;
   onClose: () => void;
 };
 
-type GeminiResponse = {
-  transactions: Array<{
-    date: string;
-    payee: string;
-    amount: number;
-    type: string;
-    notes?: string;
-    category: string;
-  }>;
+type ProcessingProgress = {
+  current: number;
+  total: number;
 };
 
 export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => {
@@ -36,30 +31,104 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [processingProgress, setProcessingProgress] = useState<ProcessingProgress>({ current: 0, total: 0 });
 
-  const cleanJsonResponse = (text: string) => {
-    console.log('Raw Gemini response:', text);
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      console.log('Cleaned JSON from Gemini:', jsonMatch[1]);
-      return jsonMatch[1];
-    }
-    console.log('No JSON blocks found, using raw text:', text);
-    return text;
-  };
-
-  const convertAmount = (amount: number, type: string): number => {
-    const amountStr = amount.toFixed(2);
-    const cents = parseInt(amountStr.replace('.', ''));
-    return type === "EXPENSE" ? -cents : cents;
-  };
-
-  const processWithGeminiAI = async (pdfContent: string) => {
+  const cleanJsonResponse = (text: string): string => {
     try {
-      console.log('PDF content being sent to Gemini:', pdfContent);
+      // First try to find JSON within code blocks
+      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[1].trim();
+        // Validate it's parseable
+        JSON.parse(jsonStr);
+        return jsonStr;
+      }
 
+      // If no code blocks or invalid JSON in code blocks, try to find JSON directly
+      const possibleJson = text.trim();
+      // Validate it's parseable
+      JSON.parse(possibleJson);
+      return possibleJson;
+    } catch (error) {
+      console.error('Error cleaning JSON response:', error);
+      throw new Error('Invalid JSON response from Gemini');
+    }
+  };
+
+  const convertAmount = (amount: number | null | undefined, type: string | null | undefined, payee: string | null | undefined): number => {
+    // Handle null/undefined amounts
+    if (amount === null || amount === undefined) {
+      console.warn('Invalid amount detected:', amount);
+      return 0;
+    }
+
+    // Convert amount to number if it's a string
+    const numericAmount = Number(amount);
+
+    // Validate the amount is a valid number
+    if (isNaN(numericAmount)) {
+      console.warn('Invalid amount detected:', amount);
+      return 0;
+    }
+
+    // Format to 2 decimal places and convert to cents
+    const amountStr = numericAmount.toFixed(2);
+    const cents = parseInt(amountStr.replace('.', ''));
+
+    // Determine transaction type if not provided or invalid
+    let transactionType = type?.toUpperCase()?.trim() || '';
+    
+    // If type is not explicitly set, try to infer from context
+    if (!transactionType || (transactionType !== 'EXPENSE' && transactionType !== 'INCOME')) {
+      // Common expense indicators in payee or transaction details
+      const expenseKeywords = [
+        'PAYMENT', 'PAY', 'SENT', 'WITHDRAW', 'PURCHASE', 'BUY', 'FEE', 'CHARGE', 
+        'DEBIT', 'PAID', 'SEND MONEY', 'WITHDRAWAL', 'BUY GOODS'
+      ];
+      
+      // Common income indicators in payee or transaction details
+      const incomeKeywords = [
+        'RECEIVED', 'DEPOSIT', 'CREDIT', 'REFUND', 'SALARY', 'PAYMENT RECEIVED',
+        'MONEY RECEIVED', 'AGENT DEPOSIT', 'RECEIVED MONEY'
+      ];
+
+      const payeeText = (payee || '').toUpperCase();
+      
+      // Check for expense keywords
+      const isExpense = expenseKeywords.some(keyword => 
+        payeeText.includes(keyword.toUpperCase())
+      );
+
+      // Check for income keywords
+      const isIncome = incomeKeywords.some(keyword => 
+        payeeText.includes(keyword.toUpperCase())
+      );
+
+      // If we can detect the type from keywords, use that
+      if (isExpense && !isIncome) {
+        transactionType = 'EXPENSE';
+      } else if (isIncome && !isExpense) {
+        transactionType = 'INCOME';
+      } else {
+        // If we can't determine type from keywords, use the sign of the amount
+        transactionType = numericAmount >= 0 ? 'INCOME' : 'EXPENSE';
+      }
+
+      console.log('Inferred transaction type:', {
+        payee: payeeText,
+        amount: numericAmount,
+        inferredType: transactionType
+      });
+    }
+
+    // Return negative value for expenses, positive for income
+    return transactionType === 'EXPENSE' ? -Math.abs(cents) : Math.abs(cents);
+  };
+
+  const processWithGeminiAI = async (pdfContent: string): Promise<string> => {
+    try {
       const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const availableCategories = categories.map(cat => ({
         name: cat.name,
@@ -67,25 +136,23 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
         id: cat.id
       }));
 
-      console.log('Available categories for Gemini:', availableCategories);
-
       const prompt = `Analyze this PDF financial document content and extract transaction and account details. The content is pre-extracted text from a financial document (which may be a bank statement, invoice, or other financial record).
 
       Return the results in JSON format with the following structure:
       {
         "accountInfo": {
-          "institutionName": "detected institution name or null",
-          "accountNumber": "detected account number or null",
-          "accountType": "detected account type or null (e.g. checking, savings, credit card, etc.)"
+          "institutionName": "detected institution name or empty string",
+          "accountNumber": "detected account number or empty string",
+          "accountType": "detected account type or empty string (e.g. checking, savings, credit card, etc.)"
         },
         "transactions": [
           {
-            "date": "YYYY-MM-DD",
-            "payee": "name of payer/payee",
-            "amount": total amount as a number with exact precision (e.g., 17000.00 should be 17000.00, 56 should be 56.00),
-            "type": "EXPENSE" or "INCOME",
-            "notes": "Include document type (statement/invoice), document number if available, and relevant details",
-            "category": "name of the most appropriate category from the list below"
+            "date": "YYYY-MM-DD" or empty string,
+            "payee": "name of payer/payee" or empty string,
+            "amount": total amount as a number with exact precision (e.g., 17000.00 should be 17000.00, 56 should be 56.00) or 0,
+            "type": "EXPENSE" or "INCOME" or empty string,
+            "notes": "Include document type (statement/invoice), document number if available, and relevant details" or empty string,
+            "category": "name of the most appropriate category from the list below" or empty string
           }
         ]
       }
@@ -96,25 +163,12 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       PDF Content to analyze:
       ${pdfContent}`;
 
-      console.log('Sending prompt to Gemini:', prompt);
-
       const result = await model.generateContent([prompt]);
-      console.log('Raw Gemini result:', result);
-
       const response = await result.response;
-      const text = response.text();
-      
-      console.log('Gemini response text:', text);
-      return text;
+      return response.text();
     } catch (error) {
       console.error('Error in Gemini processing:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      throw error;
+      throw new Error('Failed to process content with Gemini');
     }
   };
 
@@ -130,97 +184,127 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
           // Extract content using FastAPI
           console.log('Sending to FastAPI for extraction...');
           const pdfContent = await extractPdfContent(file, password);
-          console.log('Content extracted from FastAPI:', pdfContent);
+          console.log('Content extracted successfully');
           
-          // Process the extracted content with Gemini AI
-          console.log('Processing with Gemini AI...');
-          const geminiResponse = await processWithGeminiAI(pdfContent);
+          // Split content into manageable chunks
+          const chunks = splitContentIntoChunks(pdfContent);
+          console.log(`Split content into ${chunks.length} chunks`);
           
-          // Parse and clean the response
-          const cleanedJson = cleanJsonResponse(geminiResponse);
+          setProcessingProgress({ current: 0, total: chunks.length });
           
-          try {
-            const parsedData = JSON.parse(cleanedJson) as GeminiResponse & {
-              accountInfo: {
-                accountName: string | null;
-                institutionName: string | null;
-                accountNumber: string | null;
-                accountType: string | null;
-              };
-            };
-            console.log('Parsed data from Gemini:', parsedData);
+          // Process each chunk with Gemini
+          const chunkResponses: GeminiResponse[] = [];
+          for (let i = 0; i < chunks.length; i++) {
+            try {
+              console.log(`Processing chunk ${i + 1}/${chunks.length}`);
+              const geminiResponse = await processWithGeminiAI(chunks[i]);
+              const cleanedJson = cleanJsonResponse(geminiResponse);
+              const parsedData = JSON.parse(cleanedJson) as GeminiResponse;
+              chunkResponses.push(parsedData);
+              setProcessingProgress({ current: i + 1, total: chunks.length });
+            } catch (error) {
+              console.error(`Error processing chunk ${i + 1}:`, error);
+              // Continue with other chunks even if one fails
+            }
+          }
 
-            // Get account selection from user
-            const accountId = await confirm({
-              suggestedAccount: parsedData.accountInfo
-            });
-            
-            if (!accountId) {
-              console.log('User cancelled account selection');
-              toast.error("Please select an account to continue.");
-              return;
+          // Merge responses from all chunks
+          if (chunkResponses.length === 0) {
+            throw new Error('No valid data extracted from PDF');
+          }
+
+          const mergedData = mergeTransactions(chunkResponses);
+          console.log('Merged data from all chunks:', mergedData);
+
+          // Get account selection from user
+          const accountId = await confirm({
+            suggestedAccount: {
+              ...mergedData.accountInfo,
+              accountName: mergedData.accountInfo.institutionName || 'Imported Account'
+            }
+          });
+          
+          if (!accountId) {
+            console.log('User cancelled account selection');
+            toast.error("Please select an account to continue.");
+            return;
+          }
+
+          // Transform the data
+          const transformedData = mergedData.transactions.map((transaction: Transaction) => {
+            const category = categories.find(cat => 
+              cat.name.toLowerCase() === (transaction.category || '').toLowerCase()
+            );
+
+            // Validate transaction data before conversion
+            if (transaction.amount === null || transaction.amount === undefined) {
+              console.warn('Transaction with missing amount:', transaction);
+            }
+            if (!transaction.type) {
+              console.warn('Transaction with missing type:', transaction);
             }
 
-            console.log('Selected account ID:', accountId);
+            const amount = convertAmount(
+              transaction.amount, 
+              transaction.type,
+              transaction.payee
+            );
 
-            // Transform the data
-            const transformedData = parsedData.transactions.map(transaction => {
-              const category = categories.find(cat => 
-                cat.name.toLowerCase() === transaction.category.toLowerCase()
-              );
-
-              console.log('Processing transaction:', {
-                original: transaction,
-                matchedCategory: category
-              });
-
-              return {
-                accountId: accountId as string,
-                amount: convertAmount(transaction.amount, transaction.type),
-                payee: transaction.payee,
-                date: new Date(transaction.date),
-                notes: transaction.notes || `Added via PDF scan (${transaction.type.toLowerCase()})`,
-                categoryId: category?.id
-              };
+            // Log transaction details for debugging
+            console.log('Processing transaction:', {
+              payee: transaction.payee,
+              originalAmount: transaction.amount,
+              originalType: transaction.type,
+              convertedAmount: amount
             });
 
-            console.log('Transformed transactions:', transformedData);
+            return {
+              accountId: accountId as string,
+              amount,
+              payee: transaction.payee || 'Unknown Payee',
+              date: new Date(transaction.date || new Date()),
+              notes: transaction.notes || `Added via PDF scan (${transaction.type?.toLowerCase() || 'unknown'})`,
+              categoryId: category?.id
+            };
+          });
 
-            // Create transactions
-            await createTransactions.mutateAsync(transformedData);
-            console.log(`Successfully processed ${file.name}`);
-            toast.success(`Successfully processed ${file.name}!`);
-          } catch (parseError) {
-            console.error('Error parsing Gemini response:', parseError);
-            console.error('Failed JSON:', cleanedJson);
-            throw new Error('Failed to parse Gemini response');
+          // Validate all transactions have correct signs
+          const hasInvalidSigns = transformedData.some(transaction => {
+            const isExpenseWithPositiveAmount = transaction.payee.toUpperCase().includes('PAYMENT') && transaction.amount > 0;
+            const isIncomeWithNegativeAmount = transaction.payee.toUpperCase().includes('RECEIVED') && transaction.amount < 0;
+            return isExpenseWithPositiveAmount || isIncomeWithNegativeAmount;
+          });
+
+          if (hasInvalidSigns) {
+            console.warn('Found transactions with potentially incorrect signs:', 
+              transformedData.filter(t => 
+                (t.payee.toUpperCase().includes('PAYMENT') && t.amount > 0) ||
+                (t.payee.toUpperCase().includes('RECEIVED') && t.amount < 0)
+              )
+            );
           }
-        } catch (error) {
+
+          // Create transactions
+          await createTransactions.mutateAsync(transformedData);
+          console.log(`Successfully processed ${file.name}`);
+          toast.success(`Successfully processed ${file.name}!`);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           console.error(`Error processing file ${file.name}:`, error);
-          if (error instanceof Error) {
-            console.error('Error details:', {
-              message: error.message,
-              stack: error.stack
-            });
-          }
-          toast.error(`Failed to process ${file.name}. Please try again.`);
+          toast.error(`Failed to process ${file.name}. ${errorMessage}`);
         }
       }
 
       onClose();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Error in processPDFDocuments:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      toast.error("Failed to process PDF documents. Please try again.");
+      toast.error(`Failed to process PDF documents. ${errorMessage}`);
     } finally {
       setIsProcessing(false);
       setCurrentFile(null);
       setPendingFiles([]);
+      setProcessingProgress({ current: 0, total: 0 });
     }
   };
 
@@ -232,13 +316,7 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
       await processPDFDocuments([currentFile], password);
     } catch (error) {
       console.error('Error in password submission:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      throw error; // Re-throw to be handled by the dialog
+      throw error;
     }
   };
 
@@ -309,9 +387,11 @@ export const PDFUploadButton = ({ onUpload, onClose }: PDFUploadButtonProps) => 
           disabled={isProcessing}
         >
           <FileText className="mr-2 size-4" />
-          {isProcessing ? 'Processing...' : 'Upload PDF Documents'}
+          {isProcessing 
+            ? `Processing... ${processingProgress.current}/${processingProgress.total}`
+            : 'Upload PDF Documents'}
         </Button>
       </div>
     </>
   );
-}; 
+};

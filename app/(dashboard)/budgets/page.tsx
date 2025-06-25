@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNewBudget } from "@/features/budgets/hooks/use-new-budget";
-import { useGetBudgetSummary } from "@/features/budgets/api/use-get-budget-summary";
+import { useGetBudgetSummary, BudgetSummary } from "@/features/budgets/api/use-get-budget-summary";
 import { useDeleteBudget } from "@/features/budgets/api/use-delete-budget";
 import { NewBudgetSheet } from "@/features/budgets/components/new-budget-sheet";
 import { EditBudgetSheet } from "@/features/budgets/components/edit-budget-sheet";
@@ -42,7 +42,7 @@ export default function BudgetsPage() {
   const handleDelete = async (id: string) => {
     const ok = await confirm();
     if (ok) {
-      deleteBudget.mutate(id);
+      deleteBudget.mutate(undefined);
     }
   };
 
@@ -60,11 +60,11 @@ export default function BudgetsPage() {
     
     // Filter based on search term
     const filtered = search
-      ? budgets.filter((budget) => {
+      ? budgets.filter((budget: BudgetSummary) => {
           const searchTerm = search.toLowerCase();
           return (
             budget.name?.toLowerCase().includes(searchTerm) ||
-            budget.categories.some((cat) =>
+            budget.categories.some((cat: { id: string; name: string }) =>
               cat.name.toLowerCase().includes(searchTerm)
             )
           );
@@ -72,7 +72,7 @@ export default function BudgetsPage() {
       : budgets;
 
     // Sort based on current sort field and order
-    return filtered.sort((a, b) => {
+    return filtered.sort((a: BudgetSummary, b: BudgetSummary) => {
       let comparison = 0;
       switch (sortField) {
         case "name":

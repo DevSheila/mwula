@@ -44,11 +44,14 @@ const apiSchema = insertBudgetSchema.omit({
   updatedAt: true,
 });
 
-type FormValues = z.input<typeof formSchema>;
-type ApiFormValues = Omit<z.input<typeof apiSchema>, "startDate" | "endDate"> & {
+type FormValues = z.infer<typeof formSchema>;
+type ApiFormValues = {
+  name?: string;
+  categoryIds: string[];
+  amount: number;
+  period: "monthly" | "weekly" | "yearly";
   startDate: string;
   endDate: string;
-  categoryIds: string[];
 };
 
 type BudgetFormProps = {
@@ -92,10 +95,12 @@ export const BudgetForm = ({
     const amountInMiliunits = convertAmountToMiliunits(amount);
 
     onSubmit({
-      ...values,
+      name: values.name,
+      categoryIds: values.categoryIds,
       amount: amountInMiliunits,
-      startDate: values.startDate.toISOString(),
-      endDate: values.endDate.toISOString(),
+      period: values.period,
+      startDate: values.startDate.toISOString().split('T')[0],
+      endDate: values.endDate.toISOString().split('T')[0],
     });
   };
 

@@ -16,6 +16,7 @@ import { useEditBudget as useEditBudgetMutation } from "@/features/budgets/api/u
 import { useGetBudget } from "@/features/budgets/api/use-get-budget";
 import { useEditBudget } from "@/features/budgets/hooks/use-edit-budget";
 import { useConfirm } from "@/hooks/use-confirm";
+import { convertAmountToMiliunits } from "@/lib/utils";
 
 import { BudgetForm } from "./budget-form";
 
@@ -27,6 +28,14 @@ const formSchema = insertBudgetSchema.omit({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type ApiFormValues = {
+  name?: string;
+  categoryIds: string[];
+  amount: number;
+  period: "monthly" | "weekly" | "yearly";
+  startDate: string;
+  endDate: string;
+};
 
 export const EditBudgetSheet = () => {
   const { isOpen, onClose, id } = useEditBudget();
@@ -57,7 +66,7 @@ export const EditBudgetSheet = () => {
 
   const isLoading = budgetQuery.isLoading || categoryQuery.isLoading;
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = (values: ApiFormValues) => {
     editMutation.mutate(values, {
       onSuccess: () => {
         onClose();
@@ -67,25 +76,14 @@ export const EditBudgetSheet = () => {
 
   const defaultValues = budgetQuery.data
     ? {
-        name: budgetQuery.data.name,
+        name: budgetQuery.data.name || undefined,
         categoryIds: budgetQuery.data.categories?.map(c => c.id) || [],
         amount: budgetQuery.data.amount.toString(),
         period: budgetQuery.data.period,
-        startDate: budgetQuery.data.startDate
-          ? new Date(budgetQuery.data.startDate)
-          : new Date(),
-        endDate: budgetQuery.data.endDate
-          ? new Date(budgetQuery.data.endDate)
-          : new Date(),
+        startDate: new Date(budgetQuery.data.startDate),
+        endDate: new Date(budgetQuery.data.endDate),
       }
-    : {
-        name: "",
-        categoryIds: [],
-        amount: "",
-        period: "monthly",
-        startDate: new Date(),
-        endDate: new Date(),
-      };
+    : undefined;
 
   const onDelete = async () => {
     const ok = await confirm();

@@ -64,7 +64,7 @@ export default function BudgetsPage() {
           const searchTerm = search.toLowerCase();
           return (
             budget.name?.toLowerCase().includes(searchTerm) ||
-            budget.categories.some((cat: { id: string; name: string }) =>
+            (budget.categories || []).some((cat) =>
               cat.name.toLowerCase().includes(searchTerm)
             )
           );
@@ -182,7 +182,7 @@ export default function BudgetsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAndSortedBudgets.map((budget) => (
+              {filteredAndSortedBudgets.map((budget: BudgetSummary) => (
                 <BudgetCard
                   key={budget.id}
                   {...budget}

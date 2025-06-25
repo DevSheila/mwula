@@ -59,10 +59,11 @@ export const columns: ColumnDef<ResponseType>[] = [
     },
     cell: ({ row }) => {
       const name = row.getValue("name") as string;
-      const category = row.original.category;
+      const categories = row.original.categories || [];
+      const firstCategory = categories[0]?.name;
       return (
         <span className="font-medium">
-          {name || category}
+          {name || firstCategory || "Untitled Budget"}
         </span>
       )
     }

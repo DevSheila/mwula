@@ -21,12 +21,12 @@ interface Account {
 interface Transaction {
     id: string;
     date: string;
-    category?: string;
-    categoryId?: string;
-    isUniversal?: number;
+    category: string | null;
+    categoryId: string | null;
+    isUniversal: number | null;
     payee: string;
     amount: number;
-    notes?: string;
+    notes: string | null;
     account: string;
     accountId: string;
     currency: string;

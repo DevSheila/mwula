@@ -1,19 +1,18 @@
-import { useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-import { Select } from "@/components/select";
-import { Button } from "@/components/ui/button";
+import { AccountForm } from "@/features/accounts/components/account-form";
+import { useCreateAccount } from "@/features/accounts/api/use-create-account";
+import { useGetAccounts } from "@/features/accounts/api/use-get-accounts";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useCreateAccount } from "@/features/accounts/api/use-create-account";
-import { useGetAccounts } from "@/features/accounts/api/use-get-accounts";
-import { AccountForm } from "@/features/accounts/components/account-form";
-import { z } from "zod";
+import { Select } from "@/components/select";
 import { insertAccountSchema } from "@/db/schema";
 
 type SuggestedAccount = {
@@ -27,75 +26,78 @@ type ConfirmOptions = {
   suggestedAccount?: SuggestedAccount;
 };
 
-type FormValues = z.input<typeof insertAccountSchema>;
+const formSchema = insertAccountSchema.pick({
+  name: true,
+  institutionName: true,
+  accountNumber: true,
+  currency: true,
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export const useSelectAccount = (): [
   () => JSX.Element,
   (options?: ConfirmOptions) => Promise<unknown>,
 ] => {
-  const accountQuery = useGetAccounts();
   const accountMutation = useCreateAccount();
-  const [suggestedAccount, setSuggestedAccount] = useState<SuggestedAccount | null>(null);
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const accountQuery = useGetAccounts();
 
-  const accountOptions = (accountQuery.data ?? []).map((account) => ({
-    label: `${account.name} (${account.institutionName}${account.accountNumber ? ` - #${account.accountNumber}` : ''})`,
+  const accountOptions = (accountQuery.data || []).map((account) => ({
+    label: account.name,
     value: account.id,
   }));
 
-  const [promise, setPromise] = useState<{
-    resolve: (value: string | undefined) => void;
-  } | null>(null);
+  let promise: {
+    resolve: (value: unknown) => void;
+    reject: (reason?: any) => void;
+  } | null = null;
 
-  const selectValue = useRef<string>();
+  let selectValue = { current: "" };
+  let suggestedAccount: SuggestedAccount | undefined;
+  let isCreatingAccount = false;
 
   const confirm = (options?: ConfirmOptions) => {
-    // Store suggested account info if provided
-    if (options?.suggestedAccount) {
-      setSuggestedAccount(options.suggestedAccount);
-    } else {
-      setSuggestedAccount(null);
-    }
-    
-    return new Promise((resolve) => {
-      setPromise({ resolve });
+    suggestedAccount = options?.suggestedAccount;
+    return new Promise((resolve, reject) => {
+      promise = { resolve, reject };
     });
   };
 
   const handleClose = () => {
-    setPromise(null);
-    setSuggestedAccount(null);
-    setIsCreatingAccount(false);
+    if (promise) {
+      promise.reject();
+      promise = null;
+    }
   };
 
   const handleConfirm = () => {
-    promise?.resolve(selectValue.current);
-    handleClose();
+    if (promise) {
+      promise.resolve(selectValue.current);
+      promise = null;
+    }
   };
 
   const handleCancel = () => {
-    promise?.resolve(undefined);
     handleClose();
   };
 
   const handleCreateAccount = () => {
-    setIsCreatingAccount(true);
+    isCreatingAccount = true;
   };
 
   const handleAccountFormSubmit = async (values: FormValues) => {
     try {
-      const response = await accountMutation.mutateAsync({
-        name: values.name,
-        institutionName: values.institutionName,
-        accountNumber: values.accountNumber,
-        currency: values.currency || "KES",
-      });
-      // After creating the account, select it automatically
-      selectValue.current = response.data.id;
-      handleConfirm();
+      const response = await accountMutation.mutateAsync(values);
+      // The response type from the API includes { data: { id: string, ... } }
+      if ('data' in response) {
+        selectValue.current = response.data.id;
+        handleConfirm();
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
       // Error is handled by the mutation itself
-      setIsCreatingAccount(false);
+      handleClose();
     }
   };
 
@@ -138,27 +140,42 @@ export const useSelectAccount = (): [
               <Select
                 placeholder="Select an account"
                 options={accountOptions}
-                onChange={(value) => (selectValue.current = value)}
+                onChange={(value) => {
+                  if (typeof value === 'string') {
+                    selectValue.current = value;
+                  }
+                }}
                 disabled={accountQuery.isLoading || accountMutation.isPending}
               />
 
-              <DialogFooter className="pt-2 flex flex-col gap-2 sm:flex-row sm:justify-between">
-                <Button
+              <div className="flex justify-between">
+                <button
                   type="button"
                   onClick={handleCreateAccount}
-                  variant="outline"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
                 >
-                  Create New Account
-                </Button>
-                <div className="flex gap-2">
-                  <Button onClick={handleCancel} variant="outline">
+                  Create new account
+                </button>
+
+                <div className="space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="text-sm font-medium text-gray-600 hover:text-gray-500"
+                  >
                     Cancel
-                  </Button>
-                  <Button onClick={handleConfirm}>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={!selectValue.current}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500 disabled:opacity-50"
+                  >
                     Confirm
-                  </Button>
+                  </button>
                 </div>
-              </DialogFooter>
+              </div>
             </>
           )}
         </DialogContent>

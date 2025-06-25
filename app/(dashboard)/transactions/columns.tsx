@@ -82,7 +82,7 @@ export const columns: ColumnDef<ResponseType>[] = [
           id={row.original.id}
           category={row.original.category}
           categoryId={row.original.categoryId}
-          isUniversal={row.original.isUniversal}
+          isUniversal={row.original.isUniversal ?? undefined}
         />
       )
     }
@@ -122,7 +122,7 @@ export const columns: ColumnDef<ResponseType>[] = [
           variant={amount < 0 ? "destructive" : "primary"}
           className="text-xs font-medium px-3.5 py-2.5"
         >
-          {formatCurrency(amount, currency)}
+          {formatCurrency(amount, { currency })}
         </Badge>
       )
     }

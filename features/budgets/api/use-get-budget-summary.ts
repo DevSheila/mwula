@@ -17,6 +17,7 @@ export type BudgetSummary = {
   endDate: string;
   periodStart: string;
   periodEnd: string;
+  categories: Array<{ id: string; name: string }>;
 };
 
 export const useGetBudgetSummary = () => {
@@ -29,12 +30,13 @@ export const useGetBudgetSummary = () => {
 
       const { data } = await response.json();
 
-      return data.map((budget) => ({
+      return data.map((budget: any) => ({
         ...budget,
         amount: convertAmountFromMiliunits(budget.amount),
         spent: convertAmountFromMiliunits(budget.spent),
         remaining: convertAmountFromMiliunits(budget.amount - budget.spent),
         progress: Math.min(Math.max((budget.spent / budget.amount) * 100, 0), 100),
+        categories: budget.categories || [],
       }));
     },
   });

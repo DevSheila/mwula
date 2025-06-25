@@ -40,7 +40,12 @@ export const NewTransactionSheet = () => {
     value: account.id,
   }));
 
-  const onCreateAccount = (name: string) => accountMutation.mutate({ name });
+  const onCreateAccount = (name: string) => accountMutation.mutate({ 
+    name,
+    institutionName: "Default Institution",
+    accountNumber: `ACC-${Date.now()}`,
+    currency: "KES"
+  });
   const onCreateCategory = (name: string) => categoryMutation.mutate({ name });
 
   const isPending =

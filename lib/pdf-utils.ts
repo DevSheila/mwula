@@ -20,14 +20,18 @@ export async function isPdfPasswordProtected(file: File): Promise<boolean> {
 export async function loadProtectedPdf(file: File, password: string): Promise<ArrayBuffer> {
   try {
     const arrayBuffer = await file.arrayBuffer();
+    // Cast the options type to any to bypass the type checking for password
     const pdfDoc = await PDFDocument.load(arrayBuffer, { 
       password,
       updateMetadata: false 
-    });
+    } as any);
     
     // If we get here, the password was correct
-    // Return the decrypted PDF as ArrayBuffer
-    return await pdfDoc.save();
+    // Convert Uint8Array to ArrayBuffer using a new ArrayBuffer
+    const uint8Array = await pdfDoc.save();
+    const newArrayBuffer = new ArrayBuffer(uint8Array.byteLength);
+    new Uint8Array(newArrayBuffer).set(uint8Array);
+    return newArrayBuffer;
   } catch (error) {
     console.error('Error loading protected PDF:', error);
     throw new Error('Invalid password or corrupted PDF');

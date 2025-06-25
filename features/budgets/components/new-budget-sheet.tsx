@@ -24,6 +24,14 @@ const formSchema = insertBudgetSchema.omit({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type ApiFormValues = {
+  name?: string;
+  categoryIds: string[];
+  amount: number;
+  period: "monthly" | "weekly" | "yearly";
+  startDate: string;
+  endDate: string;
+};
 
 export const NewBudgetSheet = () => {
   const { isOpen, onClose } = useNewBudget();
@@ -41,8 +49,15 @@ export const NewBudgetSheet = () => {
   const isPending = createMutation.isPending || categoryMutation.isPending;
   const isLoading = categoryQuery.isLoading;
 
-  const onSubmit = (values: FormValues) => {
-    createMutation.mutate(values, {
+  const onSubmit = (values: ApiFormValues) => {
+    createMutation.mutate({
+      name: values.name,
+      categoryIds: values.categoryIds,
+      amount: values.amount,
+      period: values.period,
+      startDate: values.startDate,
+      endDate: values.endDate,
+    }, {
       onSuccess: () => {
         onClose();
       },

@@ -150,9 +150,12 @@ export const ImportCard = ({ data, onCancel, onSubmit }: ImportCardProps) => {
         console.error('Error processing row:', {
           rowIndex: index + 1,
           item: item,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
-        skippedRows.push({ index: index + 1, reason: error.message });
+        skippedRows.push({ 
+          index: index + 1, 
+          reason: error instanceof Error ? error.message : 'Unknown error' 
+        });
       }
     });
 

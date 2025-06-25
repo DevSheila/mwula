@@ -328,9 +328,9 @@ const app = new Hono()
         return ctx.json({ error: "Unauthorized." }, 401);
       }
 
-      try {
-        const newBudgetId = createId();
+      const newBudgetId: string = createId();
 
+      try {
         // Verify categories exist before creating budget
         const existingCategories = await db
           .select({ id: categories.id })

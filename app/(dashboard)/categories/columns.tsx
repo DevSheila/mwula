@@ -57,7 +57,7 @@ export const columns: ColumnDef<ResponseType>[] = [
     header: "Icon",
     cell: ({ row }) => {
       const icon = row.original.icon;
-      const IconComponent = iconMap[icon];
+      const IconComponent = icon ? iconMap[icon] : null;
       
       return (
         <div className="flex items-center gap-2">

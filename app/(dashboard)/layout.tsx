@@ -6,16 +6,13 @@ type Props = {
 
 const DashboardLayout = ({ children }: Props) => {
     return (
-        <>
-            <main className="flex-1 lg:pl-64">
+        <main className="flex-1 lg:pl-64">
+            <Header />
+            <main className="px-3 lg:px-14 ">
 
-                <Header />
-                <main className="px-3 lg:px-14 ">
-
-                    {children}
-                </main>
+                {children}
             </main>
-        </>
+        </main>
     );
 };
 

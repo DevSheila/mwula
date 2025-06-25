@@ -33,10 +33,9 @@ export default function RootLayout({
             <QueryProvider>
               <div className="flex min-h-screen">
                 <SideNav />
-                {/* <main className="flex-1 lg:pl-64"> */}
-                <main >
+               
                   {children}
-                </main>
+                
               </div>
               <SheetProvider />
               <Toaster position="top-right" />

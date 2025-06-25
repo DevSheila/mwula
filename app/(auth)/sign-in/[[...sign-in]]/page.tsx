@@ -23,8 +23,12 @@ export default function Page() {
                     </div>
                 </div>
             </div>
-            <div className="h-full bg-blue-600 hidden lg:flex items-center justify-center">
-                <Image src="/logo.svg" height={100} width={100} alt="Logo" />
+            <div className="bg-muted relative hidden lg:block">
+                <img
+                    src="/auth/signin.jpg"
+                    alt="Image"
+                    className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                />
             </div>
         </div>
     );

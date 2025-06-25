@@ -47,7 +47,12 @@ export const CategoryForm = ({
 }: CategoryFormProps) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues,
+    defaultValues: {
+      name: "",
+      description: "",
+      icon: "more-horizontal",
+      ...defaultValues,
+    },
   });
 
   const handleSubmit = (values: FormValues) => {
@@ -76,7 +81,7 @@ export const CategoryForm = ({
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Food, Travel, etc." {...field} />
+                <Input placeholder="e.g. Food, Travel, etc." {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -91,7 +96,7 @@ export const CategoryForm = ({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Expenses for food and groceries" {...field} />
+                <Input placeholder="e.g. Expenses for food and groceries" {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -108,8 +113,7 @@ export const CategoryForm = ({
               <Select
                 disabled={disabled}
                 onValueChange={field.onChange}
-                value={field.value}
-                defaultValue={field.value}
+                value={field.value || "more-horizontal"}
               >
                 <FormControl>
                   <SelectTrigger>

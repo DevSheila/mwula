@@ -31,7 +31,7 @@ interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     filterKey: string
-    onDelete: (rows: Row<TData>[]) => void;
+    onDelete?: (rows: Row<TData>[]) => void;
     disabled?: boolean;
 }
 
@@ -63,6 +63,7 @@ export function DataTable<TData, TValue>({
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
         onRowSelectionChange: setRowSelection,
+        enableRowSelection: !!onDelete,
         state: {
             sorting,
             columnFilters,
@@ -72,7 +73,7 @@ export function DataTable<TData, TValue>({
 
     return (
         <div>
-            <ConfirmationDialog />
+            {onDelete && <ConfirmationDialog />}
             <div className="flex items-center py-4">
         <Input
           placeholder={`Filter ${filterKey}...`}
@@ -82,7 +83,7 @@ export function DataTable<TData, TValue>({
           }
           className="max-w-sm"
                 />
-                {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                {onDelete && table.getFilteredSelectedRowModel().rows.length > 0 && (
                     <Button
                         disabled={disabled}
                         size="sm"
@@ -147,10 +148,12 @@ export function DataTable<TData, TValue>({
         </Table>
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
-                </div>
+                {onDelete && (
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                        {table.getFilteredRowModel().rows.length} row(s) selected.
+                    </div>
+                )}
 
         <Button
           variant="outline"

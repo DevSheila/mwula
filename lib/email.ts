@@ -33,7 +33,7 @@ export async function sendTransactionSummaryEmail({
 }) {
   try {
     const data = await resend.emails.send({
-      from: "Mwula <hello@mwula.io>",
+      from: "Mwula <hello@nicasiokarani.com>",
       to: [to],
       subject: `Your Financial Summary for ${startDate.toLocaleDateString()}`,
       react: TransactionSummaryEmail({

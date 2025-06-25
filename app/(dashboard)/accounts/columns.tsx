@@ -73,9 +73,9 @@ export const columns: ColumnDef<Account>[] = [
             )
         },
         cell: ({ row }) => {
-            const accountNumber = row.getValue("accountNumber");
+            const accountNumber = row.getValue("accountNumber") as string | undefined | null;
             return accountNumber ? (
-                <span className="font-medium">{accountNumber}</span>
+                <span className="font-medium">{String(accountNumber)}</span>
             ) : (
                 <span className="text-muted-foreground">Not provided</span>
             );
@@ -85,9 +85,9 @@ export const columns: ColumnDef<Account>[] = [
         accessorKey: "currency",
         header: "Currency",
         cell: ({ row }) => {
-            const currency = row.getValue("currency");
+            const currency = row.getValue("currency") as string | undefined | null;
             return currency ? (
-                <span className="font-medium">{currency}</span>
+                <span className="font-medium">{String(currency)}</span>
             ) : (
                 <span className="text-muted-foreground">Not provided</span>
             );

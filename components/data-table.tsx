@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useState } from "react"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -13,18 +14,19 @@ import {
     useReactTable,
     getPaginationRowModel,
 } from "@tanstack/react-table"
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { useConfirm } from "@/hooks/use-confirm"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import { useConfirm } from "@/hooks/use-confirm"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Trash } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
@@ -34,6 +36,12 @@ interface DataTableProps<TData, TValue> {
     onDelete?: (rows: Row<TData>[]) => void
     disabled?: boolean
     onRowClick?: (row: Row<TData>) => void
+    pagination?: {
+        total: number
+        page: number
+        pageSize: number
+        pageCount: number
+    }
 }
 
 export function DataTable<TData, TValue>({
@@ -43,17 +51,21 @@ export function DataTable<TData, TValue>({
     onDelete,
     disabled,
     onRowClick,
+    pagination,
 }: DataTableProps<TData, TValue>) {
     const [ConfirmationDialog, confirm] = useConfirm(
         "Are you sure?",
         "You are about to perform a bulk delete."
     );
 
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
         []
     )
-    const [rowSelection, setRowSelection] = React.useState({})
+    const [rowSelection, setRowSelection] = useState({})
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
 
     const table = useReactTable({
         data,
@@ -72,6 +84,12 @@ export function DataTable<TData, TValue>({
             rowSelection,
         },
     });
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams)
+        params.set("page", newPage.toString())
+        router.push(`${pathname}?${params.toString()}`)
+    }
 
     return (
         <div>
@@ -151,31 +169,47 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                {onDelete && (
-                    <div className="flex-1 text-sm text-muted-foreground">
-                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                        {table.getFilteredRowModel().rows.length} row(s) selected.
+            {pagination && (
+                <div className="flex items-center justify-between space-x-2 py-4">
+                    <div className="text-sm text-muted-foreground">
+                        Page {pagination.page} of {pagination.pageCount}
                     </div>
-                )}
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    Previous
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    Next
-                </Button>
-            </div>
+                    <div className="space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(1)}
+                            disabled={pagination.page <= 1}
+                        >
+                            <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={pagination.page <= 1}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={pagination.page >= pagination.pageCount}
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.pageCount)}
+                            disabled={pagination.page >= pagination.pageCount}
+                        >
+                            <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -23,12 +23,14 @@ const app = new Hono()
         from: z.string().optional(),
         to: z.string().optional(),
         accountId: z.string().optional(),
+        page: z.string().optional(),
+        pageSize: z.string().optional(),
       })
     ),
     clerkMiddleware(),
     async (ctx) => {
       const auth = getAuth(ctx);
-      const { from, to, accountId } = ctx.req.valid("query");
+      const { from, to, accountId, page = "1", pageSize = "10" } = ctx.req.valid("query");
 
       if (!auth?.userId) {
         return ctx.json({ error: "Unauthorized." }, 401);
@@ -42,6 +44,25 @@ const app = new Hono()
         : defaultFrom;
       const endDate = to ? parse(to, "yyyy-MM-dd", new Date()) : defaultTo;
 
+      const currentPage = parseInt(page);
+      const limit = parseInt(pageSize);
+      const offset = (currentPage - 1) * limit;
+
+      // Get total count for pagination
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(transactions)
+        .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(
+          and(
+            accountId ? eq(transactions.accountId, accountId) : undefined,
+            eq(accounts.userId, auth.userId),
+            gte(transactions.date, startDate),
+            lte(transactions.date, endDate)
+          )
+        );
+
+      // Get paginated data
       const data = await db
         .select({
           id: transactions.id,
@@ -69,9 +90,19 @@ const app = new Hono()
             lte(transactions.date, endDate)
           )
         )
-        .orderBy(desc(transactions.date));
+        .orderBy(desc(transactions.date))
+        .limit(limit)
+        .offset(offset);
 
-      return ctx.json({ data });
+      return ctx.json({ 
+        data,
+        pagination: {
+          total: count,
+          page: currentPage,
+          pageSize: limit,
+          pageCount: Math.ceil(count / limit)
+        }
+      });
     }
   )
   .get(

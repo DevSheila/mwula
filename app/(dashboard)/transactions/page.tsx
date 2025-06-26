@@ -17,8 +17,6 @@ import { useNewTransaction } from "@/features/transactions/hooks/use-new-transac
 
 import { columns } from "./columns";
 import { ImportCard } from "./import-card";
-import { UploadButton } from "./upload-button";
-import { DocumentUploadSection } from "./document-upload-section";
 import { ImportDialog } from "./import-dialog";
 
 enum VARIANTS {
@@ -41,7 +39,8 @@ const TransactionsPage = () => {
   const createTransactions = useBulkCreateTransactions();
   const deleteTransactions = useBulkDeleteTransactions();
   const transactionsQuery = useGetTransactions();
-  const transactions = transactionsQuery.data || [];
+  const transactions = transactionsQuery.data?.data || [];
+  const pagination = transactionsQuery.data?.pagination;
 
   const onUpload = (results: typeof INITIAL_IMPORT_RESULTS) => {
     setImportResults(results);
@@ -126,7 +125,7 @@ const TransactionsPage = () => {
               <Plus className="mr-2 size-4" /> Add new
             </Button>
    
-            < ImportDialog onUpload={onUpload} />
+            <ImportDialog onUpload={onUpload} />
           </div>
         </CardHeader>
 
@@ -137,10 +136,10 @@ const TransactionsPage = () => {
             data={transactions}
             onDelete={(row) => {
               const ids = row.map((r) => r.original.id);
-
               deleteTransactions.mutate({ ids });
             }}
             disabled={isDisabled}
+            pagination={pagination}
           />
         </CardContent>
       </Card>

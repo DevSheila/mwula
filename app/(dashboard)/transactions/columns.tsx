@@ -1,24 +1,18 @@
 "use client"
 
-import { InferResponseType } from "hono";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { client } from "@/lib/hono";
-import { Actions } from "./actions";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AccountColumn } from "./account-column";
 import { CategoryColumn } from "./category-column";
+import { Actions } from "./actions";
+import { Transaction } from "@/features/transactions/api/use-get-transactions";
 
-export type ResponseType = InferResponseType<typeof client.api.transactions.$get, 200>["data"][0] & {
-  institutionName: string;
-  accountNumber: string;
-};
-
-export const columns: ColumnDef<ResponseType>[] = [
+export const columns: ColumnDef<Transaction>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -55,15 +49,15 @@ export const columns: ColumnDef<ResponseType>[] = [
       )
     },
     cell: ({ row }) => {
-      const date = row.getValue("date") as Date;
+      const date = row.getValue("date") as string;
       return (
         <span>
-          {format(date, "MMMM dd, yyyy")}
+          {format(new Date(date), "MMMM dd, yyyy")}
         </span>
       )
     }
   },
-    {
+  {
     accessorKey: "category",
     header: ({ column }) => {
       return (
@@ -155,4 +149,4 @@ export const columns: ColumnDef<ResponseType>[] = [
     id: "actions",
     cell: ({ row }) => <Actions id={row.original.id} />
   }
-]
+];

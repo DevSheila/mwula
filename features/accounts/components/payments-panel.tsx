@@ -5,10 +5,12 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGetTransactions } from "@/features/transactions/api/use-get-transactions";
+import { useGetTransactions, type Transaction as ApiTransaction } from "@/features/transactions/api/use-get-transactions";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { DataTable } from "@/components/data-table";
+import { columns } from "@/app/(dashboard)/transactions/columns";
 
 interface Account {
     id: string;
@@ -18,21 +20,7 @@ interface Account {
     currency: string;
 }
 
-interface Transaction {
-    id: string;
-    date: string;
-    category: string | null;
-    categoryId: string | null;
-    isUniversal: number | null;
-    payee: string;
-    amount: number;
-    notes: string | null;
-    account: string;
-    accountId: string;
-    currency: string;
-    institutionName: string;
-    accountNumber: string;
-}
+type Transaction = ApiTransaction;
 
 interface PaymentsPanelProps {
     accounts: Account[];
@@ -63,36 +51,57 @@ const generatePastelColor = (str: string): { bg: string; text: string } => {
 
 export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Get pagination parameters from URL
+    const page = searchParams.get("page") || "1";
+    const pageSize = searchParams.get("pageSize") || "10";
+    const from = searchParams.get("from") || undefined;
+    const to = searchParams.get("to") || undefined;
+    const accountId = searchParams.get("accountId") || undefined;
+
+    // Fetch transactions with pagination
     const transactionsQuery = useGetTransactions();
-    const transactions = transactionsQuery.data || [];
+    const transactions = transactionsQuery.data?.data || [];
+    const pagination = transactionsQuery.data?.pagination;
+
+    // Handle page change
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("page", newPage.toString());
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     // Filter transactions based on search query
-    const filteredTransactions = transactions.filter(transaction =>
+    const filteredTransactions = transactions.filter((transaction: Transaction) =>
         transaction.payee.toLowerCase().includes(searchQuery.toLowerCase()) ||
         transaction.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Group transactions by date
-    const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
+    const groupedTransactions = filteredTransactions.reduce<Record<string, Transaction[]>>((acc, transaction) => {
         const date = format(new Date(transaction.date), "dd MMM yyyy");
         if (!acc[date]) {
             acc[date] = [];
         }
         acc[date].push(transaction);
         return acc;
-    }, {} as Record<string, Transaction[]>);
+    }, {});
 
     // Get upcoming payments (transactions with future dates)
     const upcomingPayments = filteredTransactions.filter(
-        (transaction) => new Date(transaction.date) > new Date()
+        (transaction: Transaction) => new Date(transaction.date) > new Date()
     );
 
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+        // Reset to first page when searching
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("page", "1");
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
@@ -102,7 +111,7 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
         return (
             <div
                 key={transaction.id}
-                className="flex items-center justify-between  rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-between rounded-lg hover:bg-slate-50 transition-colors"
             >
                 <div className="flex items-center gap-4">
                     <div
@@ -131,11 +140,6 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                                 "dd MMM yyyy, hh:mm a"
                             )}
                         </p>
-                        {/* {transaction.notes && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {transaction.notes}
-                            </p>
-                        )} */}
                     </div>
                 </div>
                 <div className="text-right">
@@ -164,7 +168,6 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
         <Card className="border-none drop-shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg font-bold">My Transactions</CardTitle>
-
             </CardHeader>
             <CardContent>
                 <div className="relative w-full max-w-sm mb-2">
@@ -181,27 +184,14 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                         <TabsTrigger className="text-xs" value="all">All Transactions</TabsTrigger>
                         <TabsTrigger className="text-xs" value="regular">Regular Transactions</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="all" className="mt-4 space-y-8">
-                        {Object.entries(groupedTransactions).map(([date, transactions]) => (
-                            <div key={date}>
-                                <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-                                    {date}
-                                </h3>
-                                <div className="space-y-2 divide-y divide-slate-100">
-                                    {transactions.map((transaction) => (
-                                        <TransactionItem
-                                            key={transaction.id}
-                                            transaction={transaction}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        {Object.keys(groupedTransactions).length === 0 && (
-                            <div className="text-center py-8">
-                                <p className="text-muted-foreground">No transactions found</p>
-                            </div>
-                        )}
+                    <TabsContent value="all" className="mt-4">
+                        <DataTable
+                            columns={columns}
+                            data={transactions}
+                            filterKey="payee"
+                            pagination={pagination}
+                            disabled={transactionsQuery.isLoading}
+                        />
                     </TabsContent>
                     <TabsContent value="regular" className="mt-4">
                         <div className="rounded-lg border bg-card p-4">
@@ -209,7 +199,7 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                                 Upcoming Payments
                             </h3>
                             <div className="space-y-2 divide-y divide-slate-100">
-                                {upcomingPayments.map((payment) => (
+                                {upcomingPayments.map((payment: Transaction) => (
                                     <TransactionItem
                                         key={payment.id}
                                         transaction={payment}

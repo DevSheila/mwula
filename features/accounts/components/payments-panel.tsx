@@ -137,11 +137,7 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                                 "dd MMM yyyy, hh:mm a"
                             )}
                         </p>
-                        {/* {transaction.notes && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {transaction.notes}
-                            </p>
-                        )} */}
+               
                     </div>
                 </div>
                 <div className="text-right">

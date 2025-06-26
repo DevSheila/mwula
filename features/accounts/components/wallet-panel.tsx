@@ -1,9 +1,13 @@
-
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useState, useEffect } from "react";
+import { convertAmounts } from "@/lib/currency-converter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import currencies from "@/lib/currencies";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Account {
     id: string;
@@ -20,15 +24,40 @@ interface WalletPanelProps {
 }
 
 export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
-    // Calculate total balance
-    const totalBalance = accounts.reduce((sum, account) => sum + (account.balance || 0), 0);
+    const [selectedCurrency, setSelectedCurrency] = useState("USD");
+    const [convertedTotal, setConvertedTotal] = useState<number | null>(null);
+    const [isConverting, setIsConverting] = useState(false);
+
+    // Calculate total balance with currency conversion
+    useEffect(() => {
+        const calculateTotal = async () => {
+            setIsConverting(true);
+            try {
+                const amounts = accounts.map(account => ({
+                    amount: account.balance || 0,
+                    currency: account.currency
+                }));
+                
+                const total = await convertAmounts(amounts, selectedCurrency);
+                setConvertedTotal(total);
+            } catch (error) {
+                console.error("Failed to convert currencies:", error);
+                // Fallback to simple sum without conversion
+                const total = accounts.reduce((sum, account) => sum + (account.balance || 0), 0);
+                setConvertedTotal(total);
+            } finally {
+                setIsConverting(false);
+            }
+        };
+
+        calculateTotal();
+    }, [accounts, selectedCurrency]);
 
     return (
-        <div >
+        <div>
             {/* Account Cards */}
-            <ScrollArea className="whitespace-nowrap ">
-            <div className="flex flex-nowrap gap-4 "> 
-               
+            <ScrollArea className="whitespace-nowrap">
+                <div className="flex flex-nowrap gap-4">
                     {accounts.map((account) => (
                         <div
                             key={account.id}
@@ -41,10 +70,9 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                                         backgroundImage: "url('/curved14.jpg')"
                                     }}
                                 >
-                                    <span className="absolute top-0 left-0 w-full  bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
+                                    <span className="absolute top-0 left-0 w-full bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
                                     <div className="relative z-10 flex-auto p-4">
                                         <div className="my-">
-
                                             <div className="flex justify-between items-center">
                                                 <h4 className="text-white font-semibold">
                                                     {account.institutionName}
@@ -71,7 +99,7 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                                                     Balance
                                                 </p>
                                                 <h6 className="mb-0 text-white text-sm">
-                                                    {formatCurrency(account.balance || 0)}
+                                                    {formatCurrency(account.balance || 0, { currency: account.currency })}
                                                 </h6>
                                             </div>
                                         </div>
@@ -88,26 +116,41 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
             <Card className="border-none bg-white/50 backdrop-blur-sm">
                 <CardContent className="p-6">
                     <div className="space-y-4">
-                        <div>
-                            <p className="text-sm text-muted-foreground">Your Balance</p>
-                            <h2 className="text-md font-bold">{formatCurrency(totalBalance)}</h2>
-                        </div>
-
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-emerald-600">+23.65%</p>
-                                <p className="text-xs text-muted-foreground">Increase</p>
+                                <p className="text-sm text-muted-foreground">Your Balance</p>
+                                {isConverting ? (
+                                    <Skeleton className="h-8 w-32" />
+                                ) : (
+                                    <h2 className="text-md font-bold">
+                                        {formatCurrency(convertedTotal || 0, { currency: selectedCurrency })}
+                                    </h2>
+                                )}
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-rose-600">-10.40%</p>
-                                <p className="text-xs text-muted-foreground">Decrease</p>
-                            </div>
+                            <Select
+                                value={selectedCurrency}
+                                onValueChange={setSelectedCurrency}
+                            >
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {currencies.map((currency) => (
+                                        <SelectItem
+                                            key={currency.code}
+                                            value={currency.code}
+                                        >
+                                            {currency.code} - {currency.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Currency</p>
-                                <p className="text-sm font-medium">USD / US Dollar</p>
+                                <p className="text-sm text-muted-foreground">Number of Accounts</p>
+                                <p className="text-sm font-medium">{accounts.length}</p>
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">Status</p>

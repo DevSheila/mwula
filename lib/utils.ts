@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getCurrencySymbol(currencyCode: string = "USD"): string {
+export function getCurrencySymbol(currencyCode: string = "KES"): string {
   const currency = currencies.find((c) => c.code === currencyCode);
-  return currency?.symbol || "$";
+  return currency?.symbol || "KES";
 }
 
 export function convertAmountFromMiliunits(amount: number) {

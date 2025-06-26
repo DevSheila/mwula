@@ -48,7 +48,7 @@ export const DataGrid = () => {
   const searchParams = useSearchParams();
   const to = searchParams.get("to") || undefined;
   const from = searchParams.get("from") || undefined;
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  const [selectedCurrency, setSelectedCurrency] = useState("KES");
   const [selectedAccount, setSelectedAccount] = useState<string | "all">("all");
 
   const dateRangeLabel = formatDateRange({ to, from });

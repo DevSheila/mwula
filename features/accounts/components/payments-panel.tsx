@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useGetTransactions } from "@/features/transactions/api/use-get-transactions";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useState } from "react";
@@ -99,10 +100,12 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
         const initials = getInitials(transaction.payee);
         const colors = generatePastelColor(transaction.payee);
 
+
+
         return (
             <div
                 key={transaction.id}
-                className="flex items-center justify-between  rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-between  rounded-lg hover:bg-slate-50 transition-colors py-4"
             >
                 <div className="flex items-center gap-4">
                     <div
@@ -120,9 +123,12 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                                 {transaction.payee}
                             </p>
                             {transaction.category && (
-                                <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">
+                                <Badge 
+                                    variant="primary"
+                                    className="text-xs"
+                                >
                                     {transaction.category}
-                                </span>
+                                </Badge>
                             )}
                         </div>
                         <p className="text-xs text-muted-foreground">

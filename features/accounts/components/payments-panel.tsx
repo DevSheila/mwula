@@ -8,8 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useGetTransactions } from "@/features/transactions/api/use-get-transactions";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Account {
     id: string;
@@ -39,6 +48,8 @@ interface PaymentsPanelProps {
     accounts: Account[];
 }
 
+const ITEMS_PER_PAGE = 8;
+
 // Utility function to generate initials and colors
 const getInitials = (name: string): string => {
     const words = name.split(' ');
@@ -66,46 +77,65 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const transactionsQuery = useGetTransactions();
     const transactions = transactionsQuery.data || [];
 
     // Filter transactions based on search query
-    const filteredTransactions = transactions.filter(transaction =>
-        transaction.payee.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredTransactions = useMemo(() => {
+        return transactions.filter(transaction =>
+            transaction.payee.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            transaction.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [transactions, searchQuery]);
 
-    // Group transactions by date
-    const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
-        const date = format(new Date(transaction.date), "dd MMM yyyy");
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        acc[date].push(transaction);
-        return acc;
-    }, {} as Record<string, Transaction[]>);
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+    // Group paginated transactions by date
+    const groupedTransactions = useMemo(() => {
+        return paginatedTransactions.reduce((acc, transaction) => {
+            const date = format(new Date(transaction.date), "dd MMM yyyy");
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(transaction);
+            return acc;
+        }, {} as Record<string, Transaction[]>);
+    }, [paginatedTransactions]);
 
     // Get upcoming payments (transactions with future dates)
-    const upcomingPayments = filteredTransactions.filter(
-        (transaction) => new Date(transaction.date) > new Date()
-    );
+    const upcomingPayments = useMemo(() => {
+        return filteredTransactions.filter(
+            (transaction) => new Date(transaction.date) > new Date()
+        ).slice(0, ITEMS_PER_PAGE); // Only show first page of upcoming payments
+    }, [filteredTransactions]);
 
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+        setCurrentPage(1); // Reset to first page when searching
+    };
+
+    // Handle page change
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        // Scroll to top of transaction list
+        document.getElementById('transactions-list')?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
         const initials = getInitials(transaction.payee);
         const colors = generatePastelColor(transaction.payee);
 
-
-
         return (
             <div
                 key={transaction.id}
-                className="flex items-center justify-between  rounded-lg hover:bg-slate-50 transition-colors py-4"
+                className="flex items-center justify-between rounded-lg hover:bg-slate-50 transition-colors py-4"
             >
                 <div className="flex items-center gap-4">
                     <div
@@ -137,7 +167,6 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                                 "dd MMM yyyy, hh:mm a"
                             )}
                         </p>
-               
                     </div>
                 </div>
                 <div className="text-right">
@@ -166,7 +195,6 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
         <Card className="border-none drop-shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg font-bold">My Transactions</CardTitle>
-
             </CardHeader>
             <CardContent>
                 <div className="relative w-full max-w-sm mb-2">
@@ -183,7 +211,7 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                         <TabsTrigger className="text-xs" value="all">All Transactions</TabsTrigger>
                         <TabsTrigger className="text-xs" value="regular">Regular Transactions</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="all" className="mt-4 space-y-8">
+                    <TabsContent value="all" className="mt-4 space-y-8" id="transactions-list">
                         {Object.entries(groupedTransactions).map(([date, transactions]) => (
                             <div key={date}>
                                 <h3 className="mb-4 text-sm font-medium text-muted-foreground">
@@ -203,6 +231,40 @@ export const PaymentsPanel = ({ accounts }: PaymentsPanelProps) => {
                             <div className="text-center py-8">
                                 <p className="text-muted-foreground">No transactions found</p>
                             </div>
+                        )}
+                        {totalPages > 1 && (
+                            <Pagination className="mt-4">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious 
+                                            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                                            aria-disabled={currentPage === 1}
+                                            className={cn(
+                                                currentPage === 1 && "pointer-events-none opacity-50"
+                                            )}
+                                        />
+                                    </PaginationItem>
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => handlePageChange(page)}
+                                                isActive={page === currentPage}
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    <PaginationItem>
+                                        <PaginationNext 
+                                            onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                                            aria-disabled={currentPage === totalPages}
+                                            className={cn(
+                                                currentPage === totalPages && "pointer-events-none opacity-50"
+                                            )}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
                         )}
                     </TabsContent>
                     <TabsContent value="regular" className="mt-4">

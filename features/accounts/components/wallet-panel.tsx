@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { convertAmounts } from "@/lib/currency-converter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import currencies from "@/lib/currencies";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useOpenAccount } from "@/features/accounts/hooks/use-open-account";
 
 interface Account {
     id: string;
@@ -27,6 +28,7 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
     const [selectedCurrency, setSelectedCurrency] = useState("USD");
     const [convertedTotal, setConvertedTotal] = useState<number | null>(null);
     const [isConverting, setIsConverting] = useState(false);
+    const { onOpen: onOpenEdit } = useOpenAccount();
 
     // Calculate total balance with currency conversion
     useEffect(() => {
@@ -71,9 +73,9 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                                     }}
                                 >
                                     <span className="absolute top-0 left-0 w-full bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
-                                    <div className="relative z-10 flex-auto p-4">
-                                        <div className="my-">
-                                            <div className="flex justify-between items-center">
+                                    <div className="relative p-4">
+                                        <div className="flex justify-between items-center">
+                                            <div>
                                                 <h4 className="text-white font-semibold">
                                                     {account.institutionName}
                                                 </h4>
@@ -81,11 +83,19 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                                                     {account.currency}
                                                 </p>
                                             </div>
-                                            <h5 className="pb-2 mt-6 mb-12 text-white text-sm">
-                                                {account.accountNumber.replace(/(\d{4})/g, '$1 ').trim()}
-                                            </h5>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-white hover:text-white/80"
+                                                onClick={() => onOpenEdit(account.id)}
+                                            >
+                                                <Edit className="size-4" />
+                                            </Button>
                                         </div>
-                                        <div className="flex justify-between items-end">
+                                        <h5 className="pb-2 mt-6 mb-12 text-white text-sm">
+                                            {account.accountNumber.replace(/(\d{4})/g, '$1 ').trim()}
+                                        </h5>
+                                        <div className="flex justify-between">
                                             <div>
                                                 <p className="mb-0 leading-normal text-white text-sm opacity-80">
                                                     Account Name
@@ -113,7 +123,7 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
             </ScrollArea>
 
             {/* Total Balance Card */}
-            <Card className="border-none bg-white/50 backdrop-blur-sm">
+            <Card className="border-none drop-shadow-sm">
                 <CardContent className="p-6">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">

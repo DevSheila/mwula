@@ -93,7 +93,7 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                             <h2 className="text-md font-bold">{formatCurrency(totalBalance)}</h2>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        {/* <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-emerald-600">+23.65%</p>
                                 <p className="text-xs text-muted-foreground">Increase</p>
@@ -102,12 +102,12 @@ export const WalletPanel = ({ accounts, onAddCard }: WalletPanelProps) => {
                                 <p className="text-sm font-medium text-rose-600">-10.40%</p>
                                 <p className="text-xs text-muted-foreground">Decrease</p>
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">Currency</p>
-                                <p className="text-sm font-medium">USD / US Dollar</p>
+                                <p className="text-sm font-medium">KES / Kenyan Shilling</p>
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">Status</p>
